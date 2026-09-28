@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  db:
+    image: mongo:latest
+    container_name: kinetic_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # Django Backend API
+  backend:
+    build: ./backend
+    container_name: kinetic_django
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - MONGO_URI=mongodb://db:27017/kinetic_db
+
+volumes:
+  mongo_data:

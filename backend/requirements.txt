@@ -1,0 +1,5 @@
+Django>=3.2,<4.0
+djangorestframework>=3.14.0
+djongo
+pymongo>=3.12.1
+django-cors-headers>=4.3.0
