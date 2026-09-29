@@ -1,7 +1,7 @@
 import type { Customer, Invoice, Job, Technician } from "@/types";
 
 const at = (days: number, hour: number) => { const d = new Date(); d.setDate(d.getDate() + days); d.setHours(hour, 0, 0, 0); return d.toISOString(); };
-export const customers: Customer[] = [
+const customerRows: Array<[string, string, string, string, string, string]> = [
   ["c1","Abel Tesfaye","+251 911 204 550","abel@sunrise.et","Bole Atlas, Addis Ababa","Prefers morning visits"],
   ["c2","Selamawit Bekele","+251 922 611 320","selam@bluebird.et","CMC, Addis Ababa","Gate code 205"],
   ["c3","Yonas Hotel","+251 911 876 430","facilities@yonashotel.et","Kazanchis, Addis Ababa","Commercial account"],
@@ -10,7 +10,8 @@ export const customers: Customer[] = [
   ["c6","Bethlehem School","+251 911 662 381","admin@bethlehem.edu.et","Old Airport, Addis Ababa","Visitor pass required"],
   ["c7","Kaleb Restaurant","+251 922 900 176","hello@kalebrestaurant.et","Megenagna, Addis Ababa","Service entrance at rear"],
   ["c8","Liya Worku","+251 933 511 402","liya@example.com","Lebu, Addis Ababa",""],
-].map(([id,name,phone,email,address,notes],i)=>({id,name,phone,email,address,notes,created_at:at(-60+i*4,9)}));
+];
+export const customers: Customer[] = customerRows.map(([id,name,phone,email,address,notes],i)=>({id,name,phone,email,address,notes,created_at:at(-60+i*4,9)}));
 export const technicians: Technician[] = [
   {id:"t1",name:"Dawit Alemu",phone:"+251 911 220 101",email:"dawit@fieldflow.et",specialty:"HVAC",status:"available"},
   {id:"t2",name:"Hana Girma",phone:"+251 922 310 411",email:"hana@fieldflow.et",specialty:"Plumbing",status:"on_job"},
