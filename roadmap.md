@@ -1,7 +1,7 @@
-# FieldFlow roadmap
+# Motion Magic Studio roadmap
 
-- [ ] Build typed mock API layer and seeded data
-- [ ] Build responsive animated app shell and auth flow
-- [ ] Build dashboard and jobs workflows
-- [ ] Build customers, technicians, invoices, and settings pages
-- [ ] Add route metadata, polish loading/motion, and verify desktop/mobile
+- [x] Create the cinematic dark visual system and floating navigation
+- [x] Build the animated hero and layered parallax scene
+- [x] Build the interactive template gallery with prompt copying
+- [x] Add motion showcase, backgrounds, pricing call-to-action, and responsive states
+- [ ] Verify the finished experience on desktop and mobile
