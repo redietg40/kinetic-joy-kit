@@ -1,4 +1,3 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { DashboardPage } from "@/features/dashboard/dashboard-page";
-import { PageLoader } from "@/components/shared/page-loader";
-export const Route = createFileRoute("/")({head:()=>({meta:[{title:"Dashboard | FieldFlow"},{name:"description",content:"Live job, team, and revenue overview for FieldFlow dispatchers."},{property:"og:title",content:"Dashboard | FieldFlow"},{property:"og:description",content:"Live job, team, and revenue overview for FieldFlow dispatchers."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),pendingComponent:PageLoader,component:()=><DashboardPage />});
+import { MotionMagicPage } from "@/features/studio/motion-magic-page";
+export const Route = createFileRoute("/")({head:()=>({meta:[{title:"Motion Magic Studio — AI Motionsite Builder"},{name:"description",content:"Turn one prompt into an extraordinary animated website with Motion Magic Studio."},{property:"og:title",content:"Motion Magic Studio — AI Motionsite Builder"},{property:"og:description",content:"Turn one prompt into an extraordinary animated website with Motion Magic Studio."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:MotionMagicPage});
