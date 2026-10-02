@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Eye, EyeOff, Wrench, User } from "lucide-react";
-import { login } from "@/api/auth";
+import { login, register } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,7 +81,12 @@ export function LoginPage({ expired }: { expired?: boolean | undefined }) {
   const onSignup = async (data: SignupData) => {
     try {
       setError("");
-      await new Promise(r => setTimeout(r, 600));
+      await register({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        role: data.role
+      });
       void navigate({ to: "/" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to sign up");
