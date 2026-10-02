@@ -2,12 +2,16 @@ import { useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { motion, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
 import { ArrowRight, Check, Copy, Layers3, Menu, MousePointer2, Play, Sparkles, WandSparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import architecture from "@/assets/template-architecture.jpg";
+import fashion from "@/assets/template-fashion.jpg";
+import estate from "@/assets/template-estate.jpg";
+import agency from "@/assets/template-agency.jpg";
 
 const templates = [
-  { title: "Aether House", category: "Architecture", image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80", prompt: "Create a cinematic architecture portfolio with editorial grids, quiet transitions, and coastal minimalism." },
-  { title: "SØLV Editorial", category: "Fashion", image: "https://images.unsplash.com/photo-1509631179647-0c1158f43007?w=1200&q=80", prompt: "Design a monochrome fashion portfolio with silver editorial imagery, bold cropping, and electric-blue motion accents." },
-  { title: "Nocturne Estates", category: "Real Estate", image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80", prompt: "Build a luxury real-estate showcase with immersive property imagery, glass controls, and cinematic transitions." },
-  { title: "Liquid Intelligence", category: "Creative Agency", image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&q=80", prompt: "Create a futuristic creative agency site with liquid chrome visuals, modular grids, and reactive cyan light." },
+  { title: "Aether House", category: "Architecture", image: architecture, prompt: "Create a cinematic architecture portfolio with editorial grids, quiet transitions, and coastal minimalism." },
+  { title: "SØLV Editorial", category: "Fashion", image: fashion, prompt: "Design a monochrome fashion portfolio with silver editorial imagery, bold cropping, and electric-blue motion accents." },
+  { title: "Nocturne Estates", category: "Real Estate", image: estate, prompt: "Build a luxury real-estate showcase with immersive property imagery, glass controls, and cinematic transitions." },
+  { title: "Liquid Intelligence", category: "Creative Agency", image: agency, prompt: "Create a futuristic creative agency site with liquid chrome visuals, modular grids, and reactive cyan light." },
 ];
 
 const reveal = { hidden: { opacity: 0, y: 32 }, show: { opacity: 1, y: 0, transition: { duration: .75, ease: [0.16, 1, 0.3, 1] as const } } };
@@ -21,7 +25,7 @@ function MagneticButton({ children, variant = "default", className = "", onClick
   const springX = useSpring(x, { stiffness: 250, damping: 20 }); const springY = useSpring(y, { stiffness: 250, damping: 20 });
   const move = (event: MouseEvent<HTMLDivElement>) => { const r = event.currentTarget.getBoundingClientRect(); x.set((event.clientX-r.left-r.width/2)*.18); y.set((event.clientY-r.top-r.height/2)*.18); };
   return <motion.div style={{ x: springX, y: springY }} onMouseMove={move} onMouseLeave={()=>{x.set(0);y.set(0)}} whileTap={{ scale: .94 }} className="inline-flex">
-    <Button variant={variant as any} size="lg" className={`studio-button ${className}`} onClick={onClick}>{children}</Button>
+    <Button variant={variant} size="lg" className={`studio-button ${className}`} onClick={onClick}>{children}</Button>
   </motion.div>;
 }
 
@@ -45,7 +49,7 @@ export function MotionMagicPage() {
       <motion.div className="ambient ambient-one" style={{y:orbY}}/><motion.div className="ambient ambient-two" style={{y:sceneY}}/>
       <motion.div className="hero-orbit" style={{y:sceneY}} aria-hidden="true"><span/><span/><div><Sparkles/></div></motion.div>
       <div className="hero-content"><motion.div className="hero-kicker" initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:.15}}><span/> AI-powered motion design <em>v2.0</em></motion.div>
-        <motion.h1 initial="hidden" animate="show" variants={{show:{transition:{staggerChildren:.1}}}}>{"One Prompt.,Zero Coding.,Stunning Motionsites.".split(",").map((line,i)=><motion.span key={line} variants={reveal} className={i===2?"gradient-text":""}>{line}</motion.span>)}</motion.h1>
+        <motion.h1 initial="hidden" animate="show" variants={{show:{transition:{staggerChildren:.1}}}}>{["One Prompt.","Zero Coding.","Stunning Motionsites."].map((line,i)=><motion.span key={line} variants={reveal} className={i===2?"gradient-text":""}>{line}</motion.span>)}</motion.h1>
         <motion.p initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:.65,duration:.7}}>Turn a single idea into a world-class, animated website. Crafted by AI, polished by motion, and ready to publish in minutes.</motion.p>
         <motion.div className="hero-actions" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:.8}}><MagneticButton className="primary-glow">Get lifetime access <ArrowRight/></MagneticButton><MagneticButton variant="outline"><Play/> Watch the film</MagneticButton></motion.div>
         <motion.div className="trusted" initial={{opacity:0}} animate={{opacity:1}} transition={{delay:1.05}}><div className="avatar-stack"><span>AK</span><span>NE</span><span>JL</span></div><p><strong>4,000+ creators</strong><br/>building beyond static</p></motion.div>
