@@ -5,20 +5,11 @@ import { listJobs } from "@/api/jobs";
 import { listInvoices } from "@/api/invoices"; 
 import { listCustomers } from "@/api/customers";
 import { listTechnicians } from "@/api/technicians";
+import { getSession } from "@/api/auth";
 import { AppShell } from "@/components/layout/app-shell"; 
 import { StatusBadge } from "@/components/shared/status-badge"; 
 import { friendlyDate,money } from "@/lib/format";
 import { motion } from "framer-motion";
-
-const revenue = [
-  { d: "Mon", v: 9200 },
-  { d: "Tue", v: 14800 },
-  { d: "Wed", v: 11000 },
-  { d: "Thu", v: 18400 },
-  { d: "Fri", v: 24600 },
-  { d: "Sat", v: 13200 },
-  { d: "Sun", v: 17600 },
-];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -34,6 +25,7 @@ const itemVariants = {
 };
 
 export function DashboardPage() {
+  const user = getSession();
   const { data: jobs } = useSuspenseQuery({ queryKey: ["jobs"], queryFn: listJobs });
   const { data: invoices } = useSuspenseQuery({ queryKey: ["invoices"], queryFn: listInvoices });
   const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
@@ -43,14 +35,27 @@ export function DashboardPage() {
   const today = jobs.filter(j => sameDay(j.scheduled_at));
   
   const cards = [
-    { label: "Jobs today", value: today.length, meta: "2 more than yesterday", icon: BriefcaseBusiness, tone: "primary" },
+    { label: "Jobs today", value: today.length, meta: "Scheduled for today", icon: BriefcaseBusiness, tone: "primary" },
     { label: "In progress", value: jobs.filter(j => j.status === "in_progress").length, meta: "Teams currently active", icon: Clock3, tone: "amber" },
     { label: "Completed this week", value: jobs.filter(j => j.status === "completed").length, meta: "On track for target", icon: CheckCircle2, tone: "green" },
-    { label: "Unpaid invoices", value: money(invoices.filter(i => i.status !== "paid").reduce((s, i) => s + i.total, 0)), meta: `${invoices.filter(i => i.status !== "paid").length} invoices outstanding`, icon: CircleDollarSign, tone: "orange" }
+    { label: "Unpaid invoices", value: money(invoices.filter(i => i.status !== "paid").reduce((s, i) => s + Number(i.total), 0)), meta: `${invoices.filter(i => i.status !== "paid").length} invoices outstanding`, icon: CircleDollarSign, tone: "orange" }
   ];
+
+  // Dynamic revenue calculation for the last 7 days
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const todayDate = new Date();
+  const revenue = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(todayDate);
+    d.setDate(todayDate.getDate() - (6 - i));
+    const dayInvoices = invoices.filter(inv => inv.status === "paid" && new Date(inv.issued_at).toDateString() === d.toDateString());
+    const v = dayInvoices.reduce((sum, inv) => sum + Number(inv.total), 0);
+    return { d: days[d.getDay()], v };
+  });
+  
+  const totalRevenue = revenue.reduce((sum, r) => sum + r.v, 0);
   
   return (
-    <AppShell title="Good morning, Rediet" description="Here’s what’s happening across your field operations today.">
+    <AppShell title={`Good morning, ${user?.name || 'User'}`} description="Here’s what’s happening across your field operations today.">
       <motion.div 
         className="space-y-6"
         variants={containerVariants}
@@ -130,7 +135,7 @@ export function DashboardPage() {
                 <h2>Revenue</h2>
                 <p>Collected this week</p>
               </div>
-              <strong className="text-xl">ETB 109.2K</strong>
+              <strong className="text-xl">{money(totalRevenue)}</strong>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">

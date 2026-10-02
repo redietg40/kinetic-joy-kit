@@ -30,7 +30,7 @@ class UserSerializer(serializers.ModelSerializer):
                 email=user.email,
                 phone="",
                 status="offline",
-                rating=5.0
+                specialty="General"
             )
         elif role == 'customer':
             Customer.objects.create(
