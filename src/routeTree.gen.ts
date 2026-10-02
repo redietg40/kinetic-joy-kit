@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CustomersRouteImport } from './routes/customers'
+import { Route as DirectoryRouteImport } from './routes/directory'
 import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as JobsRouteImport } from './routes/jobs'
@@ -27,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 const CustomersRoute = CustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DirectoryRoute = DirectoryRouteImport.update({
+  id: '/directory',
+  path: '/directory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DispatchRoute = DispatchRouteImport.update({
@@ -68,6 +74,7 @@ const JobsJobIdRoute = JobsJobIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/customers': typeof CustomersRoute
+  '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
   '/invoices': typeof InvoicesRoute
   '/jobs': typeof JobsRouteWithChildren
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/customers': typeof CustomersRoute
+  '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
   '/invoices': typeof InvoicesRoute
   '/jobs': typeof JobsRouteWithChildren
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/customers': typeof CustomersRoute
+  '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
   '/invoices': typeof InvoicesRoute
   '/jobs': typeof JobsRouteWithChildren
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/customers'
+    | '/directory'
     | '/dispatch'
     | '/invoices'
     | '/jobs'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/customers'
+    | '/directory'
     | '/dispatch'
     | '/invoices'
     | '/jobs'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/customers'
+    | '/directory'
     | '/dispatch'
     | '/invoices'
     | '/jobs'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CustomersRoute: typeof CustomersRoute
+  DirectoryRoute: typeof DirectoryRoute
   DispatchRoute: typeof DispatchRoute
   InvoicesRoute: typeof InvoicesRoute
   JobsRoute: typeof JobsRouteWithChildren
@@ -160,6 +173,13 @@ declare module '@tanstack/react-router' {
       path: '/customers'
       fullPath: '/customers'
       preLoaderRoute: typeof CustomersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/directory': {
+      id: '/directory'
+      path: '/directory'
+      fullPath: '/directory'
+      preLoaderRoute: typeof DirectoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dispatch': {
@@ -227,6 +247,7 @@ const JobsRouteWithChildren = JobsRoute._addFileChildren(JobsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CustomersRoute: CustomersRoute,
+  DirectoryRoute: DirectoryRoute,
   DispatchRoute: DispatchRoute,
   InvoicesRoute: InvoicesRoute,
   JobsRoute: JobsRouteWithChildren,
