@@ -18,7 +18,7 @@ export async function login(email:string,password:string) {
   const data = await res.json();
   localStorage.setItem(TOKEN_KEY, data.access);
   
-  const user: SessionUser = { id: email, name: email.split('@')[0], email, role: "Owner" }; 
+  const meRes = await fetch("http://127.0.0.1:8000/api/auth/me/", { headers: { 'Authorization': 'Bearer ' + data.access } }); if (!meRes.ok) throw new Error("Unable to fetch user profile."); const meData = await meRes.json(); const user: SessionUser = { id: meData.id.toString(), name: meData.name, email: meData.email, role: meData.role }; 
   localStorage.setItem(KEY, JSON.stringify(user)); 
   return user;
 }

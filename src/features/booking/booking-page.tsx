@@ -13,6 +13,7 @@ const bookingSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   phone: z.string().min(6),
+  telegram_username: z.string().optional(),
   address: z.string().min(5),
   title: z.string().min(3),
   description: z.string().optional(),
@@ -81,6 +82,10 @@ export function BookingPage() {
               <Input className="mt-1" placeholder="+251 900 0000" {...form.register("phone")} />
             </Label>
           </div>
+          
+          <Label>Telegram Username (Optional)
+            <Input className="mt-1" placeholder="@username" {...form.register("telegram_username")} />
+          </Label>
 
           <Label>Address
             <Input className="mt-1" placeholder="123 Bole Road, Addis Ababa" {...form.register("address")} />

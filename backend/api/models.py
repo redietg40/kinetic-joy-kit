@@ -6,6 +6,7 @@ class Customer(models.Model):
     phone = models.CharField(max_length=50)
     email = models.EmailField()
     address = models.TextField()
+    telegram_username = models.CharField(max_length=100, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

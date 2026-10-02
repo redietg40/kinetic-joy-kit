@@ -136,3 +136,8 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Email Configuration for sending customer notifications
+# For local testing, this prints emails to the terminal console instead of sending them.
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'FieldFlow <noreply@fieldflow.et>'
