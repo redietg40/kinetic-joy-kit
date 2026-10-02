@@ -54,11 +54,17 @@ class TechnicianSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class JobSerializer(serializers.ModelSerializer):
+    customer_id = serializers.PrimaryKeyRelatedField(source='customer', queryset=Customer.objects.all())
+    technician_id = serializers.PrimaryKeyRelatedField(source='technician', queryset=Technician.objects.all(), required=False, allow_null=True)
+
     class Meta:
         model = Job
-        fields = '__all__'
+        fields = ('id', 'title', 'service_type', 'status', 'scheduled_at', 'priority', 'technician_notes', 'description', 'address', 'completed_at', 'customer_id', 'technician_id')
 
 class InvoiceSerializer(serializers.ModelSerializer):
+    job_id = serializers.PrimaryKeyRelatedField(source='job', queryset=Job.objects.all())
+    customer_id = serializers.PrimaryKeyRelatedField(source='customer', queryset=Customer.objects.all())
+
     class Meta:
         model = Invoice
-        fields = '__all__'
+        fields = ('id', 'subtotal', 'tax', 'total', 'currency', 'status', 'payment_method', 'chapa_tx_ref', 'issued_at', 'paid_at', 'job_id', 'customer_id')
