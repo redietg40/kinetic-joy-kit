@@ -1,3 +1,22 @@
-import { delay } from "./client"; import { technicians } from "./mock-data"; import type { Technician } from "@/types";
-export async function listTechnicians(){ await delay(400); return [...technicians]; } // GET /api/technicians/
-export async function saveTechnician(input:Technician){ await delay(); const existing=technicians.find(t=>t.id===input.id); if(existing) Object.assign(existing,input); else technicians.unshift(input); return input;} // POST/PATCH /api/technicians/
+import { apiRequest } from "./client"; 
+import type { Technician } from "@/types";
+
+export async function listTechnicians() { 
+  return apiRequest<Technician[]>("/api/technicians/"); 
+}
+
+export async function saveTechnician(input: Technician) { 
+  if (input.id && !input.id.startsWith("new-")) {
+    return apiRequest<Technician>(`/api/technicians/${input.id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(input)
+    });
+  }
+  return apiRequest<Technician>("/api/technicians/", {
+    method: 'POST',
+    body: JSON.stringify({
+      ...input,
+      id: input.id && !input.id.startsWith("new-") ? input.id : `t${Date.now()}`
+    })
+  });
+}

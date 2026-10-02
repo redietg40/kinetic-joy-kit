@@ -3,7 +3,8 @@ import { ArrowUpRight, BriefcaseBusiness, CheckCircle2, CircleDollarSign, Clock3
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { listJobs } from "@/api/jobs"; 
 import { listInvoices } from "@/api/invoices"; 
-import { customers,technicians } from "@/api/mock-data";
+import { listCustomers } from "@/api/customers";
+import { listTechnicians } from "@/api/technicians";
 import { AppShell } from "@/components/layout/app-shell"; 
 import { StatusBadge } from "@/components/shared/status-badge"; 
 import { friendlyDate,money } from "@/lib/format";
@@ -35,6 +36,8 @@ const itemVariants = {
 export function DashboardPage() {
   const { data: jobs } = useSuspenseQuery({ queryKey: ["jobs"], queryFn: listJobs });
   const { data: invoices } = useSuspenseQuery({ queryKey: ["invoices"], queryFn: listInvoices });
+  const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
+  const { data: technicians } = useSuspenseQuery({ queryKey: ["technicians"], queryFn: listTechnicians });
   
   const sameDay = (v: string) => new Date(v).toDateString() === new Date().toDateString();
   const today = jobs.filter(j => sameDay(j.scheduled_at));
