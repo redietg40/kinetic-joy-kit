@@ -140,4 +140,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Email Configuration for sending customer notifications
 # For local testing, this prints emails to the terminal console instead of sending them.
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Telegram Bot Configuration
+TELEGRAM_BOT_TOKEN = '8460071507:AAF1lwV6gqoHDmqUewsqDGW04y7pGW-wWvY'
 DEFAULT_FROM_EMAIL = 'FieldFlow <noreply@fieldflow.et>'

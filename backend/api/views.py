@@ -124,11 +124,42 @@ class JobViewSet(viewsets.ModelViewSet):
                 fail_silently=True,
             )
             
-            # Mock Telegram Integration
+            # Real Telegram Integration
             if job.customer.telegram_username:
-                print(f"\n[TELEGRAM BOT MOCK]")
-                print(f"Sending message to {job.customer.telegram_username}:")
-                print(f"🔧 Your FieldFlow repair is scheduled for {date_str} with {tech_name}!\n")
+                username = job.customer.telegram_username.strip('@')
+                token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
+                if token:
+                    import urllib.request
+                    import json
+                    try:
+                        # 1. Fetch updates to find the user's chat_id
+                        req = urllib.request.Request(f"https://api.telegram.org/bot{token}/getUpdates")
+                        with urllib.request.urlopen(req) as response:
+                            updates = json.loads(response.read().decode())
+                        
+                        chat_id = None
+                        if updates.get('ok'):
+                            for update in updates.get('result', []):
+                                message_data = update.get('message', {})
+                                from_user = message_data.get('from', {})
+                                if from_user.get('username') == username:
+                                    chat_id = from_user.get('id')
+                                    break
+                        
+                        if chat_id:
+                            # 2. Send the message
+                            bot_msg = f"🔧 *FieldFlow Notification*\n\nYour repair '{job.title}' is scheduled for {date_str} with {tech_name}!"
+                            send_req = urllib.request.Request(
+                                f"https://api.telegram.org/bot{token}/sendMessage",
+                                data=json.dumps({"chat_id": chat_id, "text": bot_msg, "parse_mode": "Markdown"}).encode('utf-8'),
+                                headers={'Content-Type': 'application/json'}
+                            )
+                            with urllib.request.urlopen(send_req) as send_resp:
+                                print(f"Successfully sent real Telegram message to @{username}!")
+                        else:
+                            print(f"Could not find chat_id for @{username}. Did they start the bot?")
+                    except Exception as e:
+                        print(f"Telegram API error: {e}")
 
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()
