@@ -15,10 +15,10 @@ import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DirectoryRouteImport } from './routes/directory'
 import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as InvoicesRouteImport } from './routes/invoices'
-import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TechniciansRouteImport } from './routes/technicians'
+import { Route as JobsIndexRouteImport } from './routes/jobs.index'
 import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -51,11 +51,6 @@ const InvoicesRoute = InvoicesRouteImport.update({
   path: '/invoices',
   getParentRoute: () => rootRouteImport,
 } as any)
-const JobsRoute = JobsRouteImport.update({
-  id: '/jobs',
-  path: '/jobs',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -71,6 +66,11 @@ const TechniciansRoute = TechniciansRouteImport.update({
   path: '/technicians',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JobsIndexRoute = JobsIndexRouteImport.update({
+  id: '/jobs/',
+  path: '/jobs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JobsJobIdRoute = JobsJobIdRouteImport.update({
   id: '/$jobId',
   path: '/$jobId',
@@ -84,11 +84,11 @@ export interface FileRoutesByFullPath {
   '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
   '/invoices': typeof InvoicesRoute
-  '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
+  '/jobs/': typeof JobsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -97,11 +97,11 @@ export interface FileRoutesByTo {
   '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
   '/invoices': typeof InvoicesRoute
-  '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
+  '/jobs': typeof JobsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -111,11 +111,11 @@ export interface FileRoutesById {
   '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
   '/invoices': typeof InvoicesRoute
-  '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
+  '/jobs/': typeof JobsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -126,11 +126,11 @@ export interface FileRouteTypes {
     | '/directory'
     | '/dispatch'
     | '/invoices'
-    | '/jobs'
     | '/login'
     | '/settings'
     | '/technicians'
     | '/jobs/$jobId'
+    | '/jobs/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,11 +139,11 @@ export interface FileRouteTypes {
     | '/directory'
     | '/dispatch'
     | '/invoices'
-    | '/jobs'
     | '/login'
     | '/settings'
     | '/technicians'
     | '/jobs/$jobId'
+    | '/jobs'
   id:
     | '__root__'
     | '/'
@@ -152,11 +152,11 @@ export interface FileRouteTypes {
     | '/directory'
     | '/dispatch'
     | '/invoices'
-    | '/jobs'
     | '/login'
     | '/settings'
     | '/technicians'
     | '/jobs/$jobId'
+    | '/jobs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -166,10 +166,10 @@ export interface RootRouteChildren {
   DirectoryRoute: typeof DirectoryRoute
   DispatchRoute: typeof DispatchRoute
   InvoicesRoute: typeof InvoicesRoute
-  JobsRoute: typeof JobsRouteWithChildren
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
+  JobsIndexRoute: typeof JobsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -216,13 +216,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvoicesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/jobs': {
-      id: '/jobs'
-      path: '/jobs'
-      fullPath: '/jobs'
-      preLoaderRoute: typeof JobsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -244,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TechniciansRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jobs/': {
+      id: '/jobs/'
+      path: '/jobs'
+      fullPath: '/jobs/'
+      preLoaderRoute: typeof JobsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jobs/$jobId': {
       id: '/jobs/$jobId'
       path: '/$jobId'
@@ -254,16 +254,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface JobsRouteChildren {
-  JobsJobIdRoute: typeof JobsJobIdRoute
-}
-
-const JobsRouteChildren: JobsRouteChildren = {
-  JobsJobIdRoute: JobsJobIdRoute,
-}
-
-const JobsRouteWithChildren = JobsRoute._addFileChildren(JobsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BookRoute: BookRoute,
@@ -271,10 +261,10 @@ const rootRouteChildren: RootRouteChildren = {
   DirectoryRoute: DirectoryRoute,
   DispatchRoute: DispatchRoute,
   InvoicesRoute: InvoicesRoute,
-  JobsRoute: JobsRouteWithChildren,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,
+  JobsIndexRoute: JobsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
