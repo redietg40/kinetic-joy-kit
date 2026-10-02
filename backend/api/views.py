@@ -9,6 +9,32 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = (AllowAny,)
     serializer_class = UserSerializer
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        role = "Owner"
+        if Technician.objects.filter(email=user.email).exists():
+            role = "Technician"
+            name = Technician.objects.get(email=user.email).name
+        elif Customer.objects.filter(email=user.email).exists():
+            role = "Customer"
+            name = Customer.objects.get(email=user.email).name
+        else:
+            name = user.username
+
+        return Response({
+            "id": user.id,
+            "email": user.email,
+            "name": name,
+            "role": role
+        })
+
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
