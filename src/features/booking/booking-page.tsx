@@ -37,8 +37,15 @@ export function BookingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, service_type: "General" })
       });
+      const resData = await res.json();
       if (!res.ok) throw new Error("Failed to submit request.");
-      setSubmitted(true);
+      
+      // Redirect to the Chapa checkout URL returned by our new Phase 2 API
+      if (resData.checkout_url) {
+        window.location.href = resData.checkout_url;
+      } else {
+        setSubmitted(true);
+      }
     } catch (e) {
       setError("Something went wrong. Please try again.");
     }
