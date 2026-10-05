@@ -69,6 +69,14 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
     },
   });
   
+  const statusMutation = useMutation({
+    mutationFn: (status: string) => updateJob(jobId, { status }),
+    onSuccess: (data) => {
+      void qc.invalidateQueries({ queryKey: ["job", jobId] });
+      toast.success(`Job marked as ${data.status.replace("_", " ")}`);
+    },
+  });
+  
   const invoiceMutation = useMutation({
     mutationFn: (amount: number) => {
       return saveInvoice({
@@ -193,6 +201,17 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                     </div>
                   </DialogContent>
                 </Dialog>
+                <Select value={job.status} onValueChange={(v) => statusMutation.mutate(v)}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Update status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="timeline">
