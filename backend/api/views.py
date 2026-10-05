@@ -61,7 +61,9 @@ class BookServiceView(APIView):
             title=data.get('title', 'Service Request'),
             customer=customer,
             service_type=data.get('service_type', 'General'),
-            status='pending',
+            status='awaiting_payment',
+            booking_fee_amount=150.00,
+            booking_fee_paid=False,
             priority='medium',
             description=data.get('description', ''),
             address=data.get('address', '')
@@ -79,7 +81,37 @@ class BookServiceView(APIView):
             fail_silently=True,
         )
         
-        return Response({"status": "success", "job_id": job.id})
+        
+        # Simulate Chapa Initialize API Response
+        checkout_url = f"http://localhost:8080/chapa-checkout?job_id={job.id}&amount=150"
+        
+        return Response({
+            "status": "success", 
+            "job_id": job.id,
+            "checkout_url": checkout_url,
+            "message": "Please complete the booking deposit to confirm your request."
+        })
+
+class ChapaWebhookView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        job_id = request.data.get("job_id")
+        if not job_id:
+            return Response({"error": "Missing job_id"}, status=400)
+            
+        try:
+            job = Job.objects.get(id=job_id)
+            if job.status == 'awaiting_payment':
+                job.status = 'pending'
+                job.booking_fee_paid = True
+                import uuid
+                job.booking_chapa_tx_ref = f"chapa_tx_{uuid.uuid4().hex[:8]}"
+                job.save()
+                return Response({"status": "Payment verified, job is now pending."})
+            return Response({"status": "Job already processed."})
+        except Job.DoesNotExist:
+            return Response({"error": "Job not found"}, status=404)
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
@@ -101,9 +133,14 @@ class JobViewSet(viewsets.ModelViewSet):
         if old_status != 'scheduled' and job.status == 'scheduled':
             from django.core.mail import send_mail
             from django.conf import settings
-            from django.utils.dateformat import format
+            from django.utils import timezone
             
-            date_str = job.scheduled_at.strftime('%B %d, %Y at %I:%M %p') if job.scheduled_at else 'TBD'
+            if job.scheduled_at:
+                local_time = timezone.localtime(job.scheduled_at)
+                date_str = local_time.strftime('%B %d, %Y at %I:%M %p')
+            else:
+                date_str = 'TBD'
+            
             tech_name = job.technician.name if job.technician else 'a technician'
             
             subject = f"Your repair has been scheduled! - FieldFlow"
