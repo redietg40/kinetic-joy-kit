@@ -127,10 +127,15 @@ class JobViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         old_status = serializer.instance.status
+        old_scheduled_at = serializer.instance.scheduled_at
+        
         job = serializer.save()
         
-        # If the job just got scheduled, notify the customer!
-        if old_status != 'scheduled' and job.status == 'scheduled':
+        is_newly_scheduled = (old_status != 'scheduled' and job.status == 'scheduled')
+        is_rescheduled = (job.status == 'scheduled' and old_scheduled_at != job.scheduled_at)
+        
+        # If the job just got scheduled OR rescheduled, notify the customer!
+        if is_newly_scheduled or is_rescheduled:
             from django.core.mail import send_mail
             from django.conf import settings
             from django.utils import timezone
