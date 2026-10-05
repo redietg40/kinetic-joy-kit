@@ -1,2 +1,138 @@
-import { useState } from "react"; import { useSuspenseQuery } from "@tanstack/react-query"; import { Copy,Plus,Printer,Send } from "lucide-react"; import { toast } from "sonner"; import { listInvoices } from "@/api/invoices"; import { listCustomers } from "@/api/customers"; import { AppShell } from "@/components/layout/app-shell"; import { StatusBadge } from "@/components/shared/status-badge"; import { Button } from "@/components/ui/button"; import { money } from "@/lib/format";
-export function InvoicesPage(){const {data:invoices}=useSuspenseQuery({queryKey:["invoices"],queryFn:listInvoices});const {data:customers}=useSuspenseQuery({queryKey:["customers"],queryFn:listCustomers});const [filter,setFilter]=useState("all");const [selected,setSelected]=useState(invoices[0]);const filtered=invoices.filter(i=>filter==="all"||i.status===filter);return <AppShell title="Invoices" description="Build, send, and track Chapa-powered payments." actions={<Button onClick={()=>toast.info("Choose a completed job to start an invoice")}><Plus/>New invoice</Button>}><div className="page-enter grid gap-6 xl:grid-cols-[1.2fr_1fr]"><section className="panel overflow-hidden p-0"><div className="invoice-tabs">{["all","draft","sent","paid","overdue"].map(s=><button key={s} className={filter===s?"active":""} onClick={()=>setFilter(s)}>{s}</button>)}</div><div className="divide-y divide-border">{filtered.map(i=><button className={`invoice-row ${selected?.id===i.id?"selected":""}`} key={i.id} onClick={()=>setSelected(i)}><div><strong>{i.id}</strong><span>{customers.find(c=>c.id===i.customer_id)?.name}</span></div><div><strong>{money(i.total)}</strong><StatusBadge status={i.status}/></div></button>)}</div></section>{selected&&<section className="invoice-paper"><div className="invoice-brand"><div><span className="brand-icon">F</span><strong>FieldFlow Services</strong></div><StatusBadge status={selected.status}/></div><div className="invoice-title"><div><p>INVOICE</p><h2>{selected.id}</h2></div><div><small>Issued</small><strong>{new Date(selected.issued_at).toLocaleDateString()}</strong></div></div><div className="invoice-to"><small>BILL TO</small><strong>{customers.find(c=>c.id===selected.customer_id)?.name}</strong><span>{customers.find(c=>c.id===selected.customer_id)?.address}</span></div><div className="invoice-lines"><div><span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span></div>{selected.line_items.map((l,i)=><div key={i}><strong>{l.description}</strong><span>{l.qty}</span><span>{money(l.unit_price)}</span><strong>{money(l.qty*l.unit_price)}</strong></div>)}</div><div className="invoice-total"><p><span>Subtotal</span>{money(selected.subtotal)}</p><p><span>Tax</span>{money(selected.tax)}</p><strong><span>Total</span>{money(selected.total)}</strong></div><div className="invoice-actions"><Button variant="outline" onClick={()=>window.print()}><Printer/>Print</Button><Button variant="outline" onClick={()=>{void navigator.clipboard.writeText(`https://chapa.link/${selected.chapa_tx_ref}`);toast.success("Payment link copied")}}><Copy/>Copy link</Button><Button onClick={()=>toast.success("Invoice sent to customer")}><Send/>Send</Button></div></section>}</div></AppShell>}
+import { useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Copy, Plus, Printer, Send } from "lucide-react";
+import { toast } from "sonner";
+import { listInvoices } from "@/api/invoices";
+import { listCustomers } from "@/api/customers";
+import { Link } from "@tanstack/react-router";
+import { AppShell } from "@/components/layout/app-shell";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { money } from "@/lib/format";
+export function InvoicesPage() {
+  const { data: invoices } = useSuspenseQuery({ queryKey: ["invoices"], queryFn: listInvoices });
+  const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
+  const [filter, setFilter] = useState("all");
+  const [selected, setSelected] = useState(invoices[0]);
+  const filtered = invoices.filter((i) => filter === "all" || i.status === filter);
+  return (
+    <AppShell
+      title="Invoices"
+      description="Build, send, and track Chapa-powered payments."
+      actions={
+        <Button asChild>
+          <Link to="/jobs">
+            <Plus className="mr-2 h-4 w-4" />
+            Go to Jobs to invoice
+          </Link>
+        </Button>
+      }
+    >
+      <div className="page-enter grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+        <section className="panel overflow-hidden p-0">
+          <div className="invoice-tabs">
+            {["all", "draft", "sent", "paid", "overdue"].map((s) => (
+              <button key={s} className={filter === s ? "active" : ""} onClick={() => setFilter(s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+          <div className="divide-y divide-border">
+            {filtered.map((i) => (
+              <button
+                className={`invoice-row ${selected?.id === i.id ? "selected" : ""}`}
+                key={i.id}
+                onClick={() => setSelected(i)}
+              >
+                <div>
+                  <strong>{i.id}</strong>
+                  <span>{customers.find((c) => c.id === i.customer_id)?.name}</span>
+                </div>
+                <div>
+                  <strong>{money(i.total)}</strong>
+                  <StatusBadge status={i.status} />
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+        {selected && (
+          <section className="invoice-paper">
+            <div className="invoice-brand">
+              <div>
+                <span className="brand-icon">F</span>
+                <strong>FieldFlow Services</strong>
+              </div>
+              <StatusBadge status={selected.status} />
+            </div>
+            <div className="invoice-title">
+              <div>
+                <p>INVOICE</p>
+                <h2>{selected.id}</h2>
+              </div>
+              <div>
+                <small>Issued</small>
+                <strong>{new Date(selected.issued_at).toLocaleDateString()}</strong>
+              </div>
+            </div>
+            <div className="invoice-to">
+              <small>BILL TO</small>
+              <strong>{customers.find((c) => c.id === selected.customer_id)?.name}</strong>
+              <span>{customers.find((c) => c.id === selected.customer_id)?.address}</span>
+            </div>
+            <div className="invoice-lines">
+              <div>
+                <span>Description</span>
+                <span>Qty</span>
+                <span>Rate</span>
+                <span>Amount</span>
+              </div>
+              {selected.line_items.map((l, i) => (
+                <div key={i}>
+                  <strong>{l.description}</strong>
+                  <span>{l.qty}</span>
+                  <span>{money(l.unit_price)}</span>
+                  <strong>{money(l.qty * l.unit_price)}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="invoice-total">
+              <p>
+                <span>Subtotal</span>
+                {money(selected.subtotal)}
+              </p>
+              <p>
+                <span>Tax</span>
+                {money(selected.tax)}
+              </p>
+              <strong>
+                <span>Total</span>
+                {money(selected.total)}
+              </strong>
+            </div>
+            <div className="invoice-actions">
+              <Button variant="outline" onClick={() => window.print()}>
+                <Printer />
+                Print
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  void navigator.clipboard.writeText(`https://chapa.link/${selected.chapa_tx_ref}`);
+                  toast.success("Payment link copied");
+                }}
+              >
+                <Copy />
+                Copy link
+              </Button>
+              <Button onClick={() => toast.success("Invoice sent to customer")}>
+                <Send />
+                Send
+              </Button>
+            </div>
+          </section>
+        )}
+      </div>
+    </AppShell>
+  );
+}
