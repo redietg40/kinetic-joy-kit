@@ -79,14 +79,25 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
   
   const invoiceMutation = useMutation({
     mutationFn: (amount: number) => {
+      const depositAmount = job?.booking_fee_paid && job?.booking_fee_amount ? Number(job.booking_fee_amount) : 0;
+      const finalTotal = Math.max(0, amount - depositAmount);
+      
+      const line_items = [
+        { description: "Labor & Parts for " + job!.title, qty: 1, unit_price: amount }
+      ];
+      
+      if (depositAmount > 0) {
+        line_items.push({ description: "Upfront Booking Deposit (Paid)", qty: 1, unit_price: -depositAmount });
+      }
+
       return saveInvoice({
         id: `INV-${Date.now()}`,
         job_id: jobId,
         customer_id: job!.customer_id,
-        line_items: [{ description: "Labor & Parts for " + job!.title, qty: 1, unit_price: amount }],
+        line_items: line_items,
         subtotal: amount,
         tax: 0,
-        total: amount,
+        total: finalTotal,
         currency: "ETB",
         status: "draft",
         payment_method: "Chapa",
@@ -189,7 +200,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label>Amount to charge (Birr)</Label>
+                        <Label>Total Repair Cost (Birr)</Label>
                         <Input 
                           type="number" 
                           placeholder="e.g. 1500" 
@@ -197,6 +208,24 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                           onChange={(e) => setInvoiceAmount(e.target.value)}
                         />
                       </div>
+                      
+                      {job.booking_fee_paid && invoiceAmount && (
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2 text-sm">
+                          <div className="flex justify-between text-slate-500">
+                            <span>Subtotal</span>
+                            <span>{invoiceAmount} ETB</span>
+                          </div>
+                          <div className="flex justify-between text-green-600">
+                            <span>Minus Deposit (Paid)</span>
+                            <span>-{job.booking_fee_amount} ETB</span>
+                          </div>
+                          <div className="flex justify-between font-bold border-t border-slate-200 pt-2 text-base">
+                            <span>Final Due to Technician</span>
+                            <span>{Math.max(0, Number(invoiceAmount) - Number(job.booking_fee_amount))} ETB</span>
+                          </div>
+                        </div>
+                      )}
+
                       <Button 
                         disabled={!invoiceAmount || invoiceMutation.isPending}
                         onClick={() => invoiceMutation.mutate(Number(invoiceAmount))}
