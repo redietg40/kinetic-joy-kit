@@ -45,12 +45,30 @@ export function BookingPage() {
   };
 
   if (submitted) {
+    const hasTelegram = !!form.getValues().telegram_username;
+    
     return (
       <main className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
         <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center border border-slate-100">
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Request Sent!</h2>
-          <p className="text-slate-500">We've received your service request. A technician will contact you shortly.</p>
+          <p className="text-slate-500 mb-6">We've received your service request. A technician will contact you shortly.</p>
+          
+          {hasTelegram && (
+            <div className="bg-blue-50 text-blue-900 p-4 rounded-xl text-sm border border-blue-100 mb-4">
+              <p className="font-semibold mb-2">Want updates on Telegram?</p>
+              <p className="mb-3">To receive real-time notifications about your repair status, you must start our bot!</p>
+              <Button asChild variant="default" className="w-full bg-[#0088cc] hover:bg-[#0077b3] text-white">
+                <a href="https://t.me/FieldFlowApp_bot" target="_blank" rel="noreferrer">
+                  Click here to Start the Bot
+                </a>
+              </Button>
+            </div>
+          )}
+          
+          <Button variant="outline" className="w-full" onClick={() => window.location.reload()}>
+            Book Another Repair
+          </Button>
         </div>
       </main>
     );
