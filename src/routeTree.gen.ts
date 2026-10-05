@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BookRouteImport } from './routes/book'
+import { Route as BookingSuccessRouteImport } from './routes/booking-success'
+import { Route as ChapaCheckoutRouteImport } from './routes/chapa-checkout'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DirectoryRouteImport } from './routes/directory'
 import { Route as DispatchRouteImport } from './routes/dispatch'
@@ -29,6 +31,16 @@ const IndexRoute = IndexRouteImport.update({
 const BookRoute = BookRouteImport.update({
   id: '/book',
   path: '/book',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookingSuccessRoute = BookingSuccessRouteImport.update({
+  id: '/booking-success',
+  path: '/booking-success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChapaCheckoutRoute = ChapaCheckoutRouteImport.update({
+  id: '/chapa-checkout',
+  path: '/chapa-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersRoute = CustomersRouteImport.update({
@@ -80,6 +92,8 @@ const JobsJobIdRoute = JobsJobIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/book': typeof BookRoute
+  '/booking-success': typeof BookingSuccessRoute
+  '/chapa-checkout': typeof ChapaCheckoutRoute
   '/customers': typeof CustomersRoute
   '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
@@ -93,6 +107,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/book': typeof BookRoute
+  '/booking-success': typeof BookingSuccessRoute
+  '/chapa-checkout': typeof ChapaCheckoutRoute
   '/customers': typeof CustomersRoute
   '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
@@ -107,6 +123,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/book': typeof BookRoute
+  '/booking-success': typeof BookingSuccessRoute
+  '/chapa-checkout': typeof ChapaCheckoutRoute
   '/customers': typeof CustomersRoute
   '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
@@ -122,6 +140,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/book'
+    | '/booking-success'
+    | '/chapa-checkout'
     | '/customers'
     | '/directory'
     | '/dispatch'
@@ -135,6 +155,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/book'
+    | '/booking-success'
+    | '/chapa-checkout'
     | '/customers'
     | '/directory'
     | '/dispatch'
@@ -148,6 +170,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/book'
+    | '/booking-success'
+    | '/chapa-checkout'
     | '/customers'
     | '/directory'
     | '/dispatch'
@@ -162,6 +186,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BookRoute: typeof BookRoute
+  BookingSuccessRoute: typeof BookingSuccessRoute
+  ChapaCheckoutRoute: typeof ChapaCheckoutRoute
   CustomersRoute: typeof CustomersRoute
   DirectoryRoute: typeof DirectoryRoute
   DispatchRoute: typeof DispatchRoute
@@ -187,6 +213,20 @@ declare module '@tanstack/react-router' {
       path: '/book'
       fullPath: '/book'
       preLoaderRoute: typeof BookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/booking-success': {
+      id: '/booking-success'
+      path: '/booking-success'
+      fullPath: '/booking-success'
+      preLoaderRoute: typeof BookingSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chapa-checkout': {
+      id: '/chapa-checkout'
+      path: '/chapa-checkout'
+      fullPath: '/chapa-checkout'
+      preLoaderRoute: typeof ChapaCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers': {
@@ -258,6 +298,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BookRoute: BookRoute,
+  BookingSuccessRoute: BookingSuccessRoute,
+  ChapaCheckoutRoute: ChapaCheckoutRoute,
   CustomersRoute: CustomersRoute,
   DirectoryRoute: DirectoryRoute,
   DispatchRoute: DispatchRoute,
