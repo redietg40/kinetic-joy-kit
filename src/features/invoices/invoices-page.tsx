@@ -6,7 +6,7 @@ import { listInvoices, sendInvoiceTelegram } from "@/api/invoices";
 import { listCustomers } from "@/api/customers";
 import { Link } from "@tanstack/react-router";
 import { useRef } from "react";
-import html2canvas from "html2canvas";
+import { toPng } from 'html-to-image';
 import { AppShell } from "@/components/layout/app-shell";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -135,11 +135,14 @@ export function InvoicesPage() {
                     let imageData: string | undefined = undefined;
                     
                     if (invoiceRef.current) {
-                      const canvas = await html2canvas(invoiceRef.current, { 
-                        scale: 2, 
-                        backgroundColor: '#1e1e24' // match the dark theme background
+                      imageData = await toPng(invoiceRef.current, { 
+                        pixelRatio: 2, 
+                        backgroundColor: '#1e1e24',
+                        style: {
+                          transform: 'scale(1)',
+                          transformOrigin: 'top left',
+                        }
                       });
-                      imageData = canvas.toDataURL("image/png");
                     }
                     
                     toast.dismiss();
