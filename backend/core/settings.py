@@ -144,3 +144,5 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN = '8460071507:AAF1lwV6gqoHDmqUewsqDGW04y7pGW-wWvY'
 DEFAULT_FROM_EMAIL = 'FieldFlow <noreply@fieldflow.et>'
+from datetime import timedelta
+SIMPLE_JWT = { 'ACCESS_TOKEN_LIFETIME': timedelta(days=30) }
