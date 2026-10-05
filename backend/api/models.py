@@ -50,6 +50,7 @@ class Invoice(models.Model):
     id = models.CharField(max_length=50, primary_key=True)
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="invoices")
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="invoices")
+    line_items = models.JSONField(default=list)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)
     tax = models.DecimalField(max_digits=12, decimal_places=2)
     total = models.DecimalField(max_digits=12, decimal_places=2)
