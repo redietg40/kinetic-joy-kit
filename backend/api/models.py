@@ -37,6 +37,11 @@ class Job(models.Model):
     description = models.TextField(blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Booking Deposit Fields (Chapa Escrow)
+    booking_fee_paid = models.BooleanField(default=False)
+    booking_fee_amount = models.DecimalField(max_digits=10, decimal_places=2, default=150.00)
+    booking_chapa_tx_ref = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.title
@@ -55,5 +60,19 @@ class Invoice(models.Model):
     issued_at = models.DateTimeField(auto_now_add=True)
     paid_at = models.DateTimeField(null=True, blank=True)
 
+    # Payout Tracking
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    technician_payout_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    payout_status = models.CharField(max_length=50, default='pending') # 'pending', 'paid_to_tech'
+
     def __str__(self):
         return self.id
+
+class TechnicianLedger(models.Model):
+    technician = models.OneToOneField(Technician, on_delete=models.CASCADE, related_name="ledger")
+    total_earned = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total_paid_out = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"{self.technician.name} Ledger - {self.current_balance} ETB"
