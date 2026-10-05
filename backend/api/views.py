@@ -242,11 +242,44 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             
             if chat_id:
                 bot_msg = f"🧾 *FieldFlow Invoice*\n\nHere is your receipt for your repair:\n*Invoice ID:* {invoice.id}\n*Subtotal:* {invoice.subtotal} ETB\n*Total Paid/Due:* {invoice.total} ETB\n\nThank you for choosing FieldFlow Services!"
-                send_req = urllib.request.Request(
-                    f"https://api.telegram.org/bot{token}/sendMessage",
-                    data=json.dumps({"chat_id": chat_id, "text": bot_msg, "parse_mode": "Markdown"}).encode('utf-8'),
-                    headers={'Content-Type': 'application/json'}
-                )
+                
+                image_data_b64 = request.data.get('image_data')
+                
+                if image_data_b64 and image_data_b64.startswith('data:image'):
+                    # Extract the base64 string
+                    header, b64_str = image_data_b64.split(',', 1)
+                    import base64
+                    image_bytes = base64.b64decode(b64_str)
+                    
+                    # Create multipart form data request
+                    import mimetypes
+                    import uuid
+                    boundary = uuid.uuid4().hex
+                    
+                    body = bytearray()
+                    # Add chat_id
+                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n{chat_id}\r\n'.encode('utf-8'))
+                    # Add caption
+                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n{bot_msg}\r\n'.encode('utf-8'))
+                    # Add parse_mode
+                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="parse_mode"\r\n\r\nMarkdown\r\n'.encode('utf-8'))
+                    # Add photo
+                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="photo"; filename="invoice.png"\r\nContent-Type: image/png\r\n\r\n'.encode('utf-8'))
+                    body.extend(image_bytes)
+                    body.extend(f'\r\n--{boundary}--\r\n'.encode('utf-8'))
+                    
+                    send_req = urllib.request.Request(
+                        f"https://api.telegram.org/bot{token}/sendPhoto",
+                        data=body,
+                        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'}
+                    )
+                else:
+                    send_req = urllib.request.Request(
+                        f"https://api.telegram.org/bot{token}/sendMessage",
+                        data=json.dumps({"chat_id": chat_id, "text": bot_msg, "parse_mode": "Markdown"}).encode('utf-8'),
+                        headers={'Content-Type': 'application/json'}
+                    )
+                
                 with urllib.request.urlopen(send_req) as send_resp:
                     return Response({"status": "Sent successfully via Telegram!"})
             else:

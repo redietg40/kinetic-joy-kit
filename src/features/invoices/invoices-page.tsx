@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { listInvoices, sendInvoiceTelegram } from "@/api/invoices";
 import { listCustomers } from "@/api/customers";
 import { Link } from "@tanstack/react-router";
+import { useRef } from "react";
+import html2canvas from "html2canvas";
 import { AppShell } from "@/components/layout/app-shell";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,7 @@ export function InvoicesPage() {
   const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(invoices[0]);
+  const invoiceRef = useRef<HTMLDivElement>(null);
   const filtered = invoices.filter((i) => filter === "all" || i.status === filter);
   return (
     <AppShell
@@ -57,7 +60,7 @@ export function InvoicesPage() {
           </div>
         </section>
         {selected && (
-          <section className="invoice-paper">
+          <section className="invoice-paper" ref={invoiceRef}>
             <div className="invoice-brand">
               <div>
                 <span className="brand-icon">F</span>
@@ -128,13 +131,26 @@ export function InvoicesPage() {
               <Button 
                 onClick={async () => {
                   try {
-                    const res = await sendInvoiceTelegram(selected.id);
+                    toast.loading("Generating beautiful receipt image...");
+                    let imageData: string | undefined = undefined;
+                    
+                    if (invoiceRef.current) {
+                      const canvas = await html2canvas(invoiceRef.current, { 
+                        scale: 2, 
+                        backgroundColor: '#1e1e24' // match the dark theme background
+                      });
+                      imageData = canvas.toDataURL("image/png");
+                    }
+                    
+                    toast.dismiss();
+                    const res = await sendInvoiceTelegram(selected.id, imageData);
                     if (res && res.error) {
                       toast.error(res.error);
                     } else {
                       toast.success("Receipt sent to customer's Telegram!");
                     }
                   } catch (e: any) {
+                    toast.dismiss();
                     toast.error(e.message || "Failed to send Telegram message");
                   }
                 }}
