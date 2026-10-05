@@ -133,6 +133,12 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
               <div className="flex gap-2">
                 <StatusBadge status={job.status} />
                 <StatusBadge status={job.priority} />
+                {job.booking_fee_paid && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Deposit Paid
+                  </span>
+                )}
               </div>
               <div className="flex gap-2">
                 <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>

@@ -59,7 +59,7 @@ class JobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = ('id', 'title', 'service_type', 'status', 'scheduled_at', 'priority', 'technician_notes', 'description', 'address', 'completed_at', 'customer_id', 'technician_id')
+        fields = ('id', 'title', 'service_type', 'status', 'scheduled_at', 'priority', 'technician_notes', 'description', 'address', 'completed_at', 'customer_id', 'technician_id', 'booking_fee_paid', 'booking_fee_amount', 'booking_chapa_tx_ref')
 
 class InvoiceSerializer(serializers.ModelSerializer):
     job_id = serializers.PrimaryKeyRelatedField(source='job', queryset=Job.objects.all())
