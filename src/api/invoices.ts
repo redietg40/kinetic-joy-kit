@@ -24,3 +24,9 @@ export async function saveInvoice(invoice: Invoice) {
     })
   });
 }
+
+export async function sendInvoiceTelegram(id: string) {
+  return apiRequest<{status?: string, error?: string}>(`/api/invoices/${id}/send_telegram/`, {
+    method: 'POST'
+  });
+}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Copy, Plus, Printer, Send } from "lucide-react";
 import { toast } from "sonner";
-import { listInvoices } from "@/api/invoices";
+import { listInvoices, sendInvoiceTelegram } from "@/api/invoices";
 import { listCustomers } from "@/api/customers";
 import { Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/app-shell";
@@ -125,7 +125,20 @@ export function InvoicesPage() {
                 <Copy />
                 Copy link
               </Button>
-              <Button onClick={() => toast.success("Invoice sent to customer")}>
+              <Button 
+                onClick={async () => {
+                  try {
+                    const res = await sendInvoiceTelegram(selected.id);
+                    if (res && res.error) {
+                      toast.error(res.error);
+                    } else {
+                      toast.success("Receipt sent to customer's Telegram!");
+                    }
+                  } catch (e: any) {
+                    toast.error(e.message || "Failed to send Telegram message");
+                  }
+                }}
+              >
                 <Send />
                 Send
               </Button>

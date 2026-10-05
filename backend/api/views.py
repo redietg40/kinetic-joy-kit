@@ -207,3 +207,47 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
 
+    @action(detail=True, methods=['post'])
+    def send_telegram(self, request, pk=None):
+        invoice = self.get_object()
+        customer = invoice.customer
+        
+        if not customer.telegram_username:
+            return Response({"error": "Customer has no Telegram username"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        username = customer.telegram_username.strip('@')
+        token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
+        
+        if not token:
+            return Response({"error": "Telegram bot not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        import urllib.request
+        import json
+        
+        try:
+            req = urllib.request.Request(f"https://api.telegram.org/bot{token}/getUpdates")
+            with urllib.request.urlopen(req) as response:
+                updates = json.loads(response.read().decode())
+            
+            chat_id = None
+            if updates.get('ok'):
+                for update in updates.get('result', []):
+                    message_data = update.get('message', {})
+                    from_user = message_data.get('from', {})
+                    if from_user.get('username') == username:
+                        chat_id = from_user.get('id')
+                        break
+            
+            if chat_id:
+                bot_msg = f"🧾 *FieldFlow Invoice*\n\nHere is your receipt for your repair:\n*Invoice ID:* {invoice.id}\n*Subtotal:* {invoice.subtotal} ETB\n*Total Paid/Due:* {invoice.total} ETB\n\nThank you for choosing FieldFlow Services!"
+                send_req = urllib.request.Request(
+                    f"https://api.telegram.org/bot{token}/sendMessage",
+                    data=json.dumps({"chat_id": chat_id, "text": bot_msg, "parse_mode": "Markdown"}).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'}
+                )
+                with urllib.request.urlopen(send_req) as send_resp:
+                    return Response({"status": "Sent successfully via Telegram!"})
+            else:
+                return Response({"error": f"Could not find chat_id for @{username}. Have they started the bot?"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Telegram API error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
