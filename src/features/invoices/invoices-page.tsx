@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Copy, Plus, Printer, Send } from "lucide-react";
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Copy, Plus, Printer, Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { listInvoices, sendInvoiceTelegram } from "@/api/invoices";
+import { listInvoices, sendInvoiceTelegram, saveInvoice } from "@/api/invoices";
 import { listCustomers } from "@/api/customers";
 import { Link } from "@tanstack/react-router";
 import { useRef } from "react";
@@ -12,12 +12,24 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { money } from "@/lib/format";
 export function InvoicesPage() {
+  const qc = useQueryClient();
   const { data: invoices } = useSuspenseQuery({ queryKey: ["invoices"], queryFn: listInvoices });
   const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(invoices[0]);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const filtered = invoices.filter((i) => filter === "all" || i.status === filter);
+  
+  const markPaid = useMutation({
+    mutationFn: (inv: any) => saveInvoice({ ...inv, status: "paid", paid_at: new Date().toISOString() }),
+    onSuccess: (data) => {
+      void qc.invalidateQueries({ queryKey: ["invoices"] });
+      setSelected(data);
+      toast.success("Invoice marked as paid! Customer cash collected.");
+    },
+    onError: () => toast.error("Failed to mark as paid")
+  });
+  
   return (
     <AppShell
       title="Invoices"
@@ -161,6 +173,16 @@ export function InvoicesPage() {
                 <Send />
                 Send
               </Button>
+              {selected.status !== "paid" && (
+                <Button 
+                  onClick={() => markPaid.mutate(selected)}
+                  disabled={markPaid.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                >
+                  <CheckCircle2 />
+                  {markPaid.isPending ? "Updating..." : "Mark as Paid"}
+                </Button>
+              )}
             </div>
           </section>
         )}
