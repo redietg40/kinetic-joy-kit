@@ -91,7 +91,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
       }
 
       return saveInvoice({
-        id: `INV-${Date.now()}`,
+        id: `new-${Date.now()}`,
         job_id: jobId,
         customer_id: job!.customer_id,
         line_items: line_items,
