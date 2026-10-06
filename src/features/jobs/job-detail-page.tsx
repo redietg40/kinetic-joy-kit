@@ -307,23 +307,33 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
             <h3 className="section-title">Description</h3>
             <p className="text-sm leading-6 text-muted-foreground">{job.description}</p>
             <h3 className="section-title">Technician notes (Announcements to Boss)</h3>
-            <div className="note-box flex gap-2">
-              <textarea 
-                value={noteText}
-                onChange={e => setNoteText(e.target.value)}
-                placeholder="Write an announcement or note for the owner here..."
-                className="flex-1 p-2 text-sm bg-transparent border-none resize-none focus:outline-none min-h-[80px]"
-              />
-              <Button 
-                onClick={() => noteMutation.mutate(noteText)}
-                disabled={noteMutation.isPending || noteText === job.technician_notes}
-                variant="secondary"
-                size="sm"
-                className="self-end"
-              >
-                {noteMutation.isPending ? "Sending..." : "Send Note"}
-              </Button>
-            </div>
+            {isTech ? (
+              <div className="note-box flex gap-2">
+                <textarea 
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  placeholder="Write an announcement or note for the owner here..."
+                  className="flex-1 p-2 text-sm bg-transparent border-none resize-none focus:outline-none min-h-[80px]"
+                />
+                <Button 
+                  onClick={() => noteMutation.mutate(noteText)}
+                  disabled={noteMutation.isPending || noteText === job.technician_notes}
+                  variant="secondary"
+                  size="sm"
+                  className="self-end"
+                >
+                  {noteMutation.isPending ? "Sending..." : "Send Note"}
+                </Button>
+              </div>
+            ) : (
+              <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                {job.technician_notes ? (
+                  <p className="text-sm text-slate-300 whitespace-pre-wrap">{job.technician_notes}</p>
+                ) : (
+                  <p className="text-sm text-slate-500 italic">No announcements from the technician yet.</p>
+                )}
+              </div>
+            )}
           </section>
           <section className="panel">
             <div className="panel-heading">
