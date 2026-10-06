@@ -8,7 +8,16 @@ import { initials } from "@/lib/format";
 
 export function AppShell({children,title,description,actions}:{children:ReactNode;title:string;description:string;actions?:ReactNode}){
   const navigate=useNavigate(); const location=useLocation(); const [collapsed,setCollapsed]=useState(false); const [mobile,setMobile]=useState(false); const [dark,setDark]=useState(true); const [ready,setReady]=useState(false); const [user,setUser]=useState(getSession());
-  useEffect(()=>{const session=getSession(); setUser(session); setReady(true); if(!session) void navigate({to:"/login",search:{expired:undefined}});},[navigate]);
+  useEffect(()=>{
+    const session=getSession(); 
+    setUser(session); 
+    setReady(true); 
+    if(!session) {
+      void navigate({to:"/login",search:{expired:undefined}});
+    } else if (session.role === 'Technician' && location.pathname === '/') {
+      void navigate({to:"/jobs"});
+    }
+  },[navigate, location.pathname]);
   useEffect(()=>{document.documentElement.classList.toggle("dark",dark)},[dark]);
   
   if(!ready||!user) return <div className="brand-loader"><div className="loader-mark"><span/><span/><span/></div><p>Preparing your workspace</p></div>;
