@@ -6,8 +6,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { getSession, logout } from "@/api/auth";
 import { initials } from "@/lib/format";
 
-const nav=[{to:"/",label:"Overview",icon:BarChart3},{to:"/jobs",label:"Jobs",icon:BriefcaseBusiness},{to:"/dispatch",label:"Dispatch",icon:CalendarDays},{to:"/customers",label:"Customers",icon:Users},{to:"/technicians",label:"Technicians",icon:Wrench},{to:"/invoices",label:"Invoices",icon:CircleDollarSign},{to:"/settings",label:"Settings",icon:Settings}] as const;
-
 export function AppShell({children,title,description,actions}:{children:ReactNode;title:string;description:string;actions?:ReactNode}){
   const navigate=useNavigate(); const location=useLocation(); const [collapsed,setCollapsed]=useState(false); const [mobile,setMobile]=useState(false); const [dark,setDark]=useState(true); const [ready,setReady]=useState(false); const [user,setUser]=useState(getSession());
   useEffect(()=>{const session=getSession(); setUser(session); setReady(true); if(!session) void navigate({to:"/login",search:{expired:undefined}});},[navigate]);
@@ -15,6 +13,13 @@ export function AppShell({children,title,description,actions}:{children:ReactNod
   
   if(!ready||!user) return <div className="brand-loader"><div className="loader-mark"><span/><span/><span/></div><p>Preparing your workspace</p></div>;
   const doLogout=async()=>{await logout(); void navigate({to:"/login",search:{expired:undefined}})};
+  
+  let nav=[{to:"/",label:"Overview",icon:BarChart3},{to:"/jobs",label:"Jobs",icon:BriefcaseBusiness},{to:"/dispatch",label:"Dispatch",icon:CalendarDays},{to:"/customers",label:"Customers",icon:Users},{to:"/technicians",label:"Technicians",icon:Wrench},{to:"/invoices",label:"Invoices",icon:CircleDollarSign},{to:"/settings",label:"Settings",icon:Settings}] as const;
+  
+  if (user.role === 'Technician') {
+    // @ts-ignore - TS thinks nav is strictly the tuple above
+    nav = [{to:"/jobs",label:"My Jobs",icon:BriefcaseBusiness}];
+  }
   
   return (
     <TooltipProvider>

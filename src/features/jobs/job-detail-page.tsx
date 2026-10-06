@@ -51,6 +51,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
   const [scheduleDate, setScheduleDate] = useState("");
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [invoiceAmount, setInvoiceAmount] = useState("");
+  const [noteText, setNoteText] = useState(job?.technician_notes || "");
   const navigate = useNavigate();
   const mutation = useMutation({
     mutationFn: (technician_id: string) => updateJob(jobId, { technician_id }),
@@ -75,6 +76,14 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
       void qc.invalidateQueries({ queryKey: ["job", jobId] });
       toast.success(`Job marked as ${data.status.replace("_", " ")}`);
     },
+  });
+  
+  const noteMutation = useMutation({
+    mutationFn: (note: string) => updateJob(jobId, { technician_notes: note }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["job", jobId] });
+      toast.success("Announcement sent to owner!");
+    }
   });
   
   const invoiceMutation = useMutation({
@@ -286,9 +295,23 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
             </div>
             <h3 className="section-title">Description</h3>
             <p className="text-sm leading-6 text-muted-foreground">{job.description}</p>
-            <h3 className="section-title">Technician notes</h3>
-            <div className="note-box">
-              {job.technician_notes || "No notes have been added yet."}
+            <h3 className="section-title">Technician notes (Announcements to Boss)</h3>
+            <div className="note-box flex gap-2">
+              <textarea 
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+                placeholder="Write an announcement or note for the owner here..."
+                className="flex-1 p-2 text-sm bg-transparent border-none resize-none focus:outline-none min-h-[80px]"
+              />
+              <Button 
+                onClick={() => noteMutation.mutate(noteText)}
+                disabled={noteMutation.isPending || noteText === job.technician_notes}
+                variant="secondary"
+                size="sm"
+                className="self-end"
+              >
+                {noteMutation.isPending ? "Sending..." : "Send Note"}
+              </Button>
             </div>
           </section>
           <section className="panel">

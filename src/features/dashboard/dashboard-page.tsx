@@ -153,31 +153,34 @@ export function DashboardPage() {
         <motion.section className="panel" variants={itemVariants}>
           <div className="panel-heading">
             <div>
-              <h2>Recent activity</h2>
-              <p>Latest updates from your team</p>
+              <h2>Technician Announcements</h2>
+              <p>Recent notes and updates from your field team</p>
             </div>
           </div>
           <div className="activity-grid">
-            {jobs.filter(j => j.status === "completed").slice(0, 4).map(job => (
+            {jobs.filter(j => j.technician_notes).slice(0, 4).map(job => (
               <motion.div 
                 key={job.id} 
                 className="activity-item"
                 whileHover={{ scale: 1.02, x: 8 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
               >
-                <span className="activity-dot">
-                  <CheckCircle2 />
+                <span className="activity-dot bg-blue-100 text-blue-600">
+                  <CheckCircle2 className="w-4 h-4" />
                 </span>
                 <div>
                   <p>
-                    <strong>{technicians.find(t => t.id === job.technician_id)?.name}</strong> completed {job.title.toLowerCase()}
+                    <strong>{technicians.find(t => t.id === job.technician_id)?.name}</strong>: "{job.technician_notes}"
                   </p>
                   <small>
-                    {friendlyDate(job.completed_at ?? job.scheduled_at)} · {job.id}
+                    Regarding {job.title} · {friendlyDate(job.completed_at ?? job.scheduled_at)}
                   </small>
                 </div>
               </motion.div>
             ))}
+            {jobs.filter(j => j.technician_notes).length === 0 && (
+              <p className="text-sm text-slate-500">No announcements from technicians yet.</p>
+            )}
           </div>
         </motion.section>
       </motion.div>
