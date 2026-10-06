@@ -16,6 +16,7 @@ import { getJob, updateJob } from "@/api/jobs";
 import { listCustomers } from "@/api/customers";
 import { listTechnicians } from "@/api/technicians";
 import { saveInvoice } from "@/api/invoices";
+import { getSession } from "@/api/auth";
 import { useNavigate } from "@tanstack/react-router";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,8 @@ import { friendlyDate } from "@/lib/format";
 import type { Job } from "@/types";
 export function JobDetailPage({ jobId }: { jobId: string }) {
   const qc = useQueryClient();
+  const session = getSession();
+  const isTech = session?.role === "Technician";
   const { data: job } = useSuspenseQuery({
     queryKey: ["job", jobId],
     queryFn: () => getJob(jobId),
@@ -163,105 +166,111 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                 )}
               </div>
               <div className="flex gap-2">
-                <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="secondary">
-                      <CalendarDays />
-                      Schedule & Notify
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Schedule Repair</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <p className="text-sm text-muted-foreground">
-                        Set a date and time for this repair. The customer will automatically receive
-                        an email (and Telegram if provided) notification.
-                      </p>
-                      <input
-                        type="datetime-local"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                        value={scheduleDate}
-                        onChange={(e) => setScheduleDate(e.target.value)}
-                      />
-                      <Button
-                        onClick={() =>
-                          scheduleMutation.mutate({
-                            scheduled_at: new Date(scheduleDate).toISOString(),
-                            status: "scheduled",
-                          })
-                        }
-                      >
-                        Confirm & Notify
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                <Dialog open={invoiceOpen} onOpenChange={setInvoiceOpen}>
-                  <DialogTrigger asChild>
-                    {job.status === "completed" ? (
-                      <Button>
-                        <ReceiptText className="mr-2 h-4 w-4" />
-                        Create invoice
-                      </Button>
-                    ) : (
-                      <Button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          statusMutation.mutate("completed");
-                          toast.success("Job marked as completed!");
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Mark as Completed
-                      </Button>
-                    )}
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create Invoice for {job.title}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label>Total Repair Cost (Birr)</Label>
-                        <Input 
-                          type="number" 
-                          placeholder="e.g. 1500" 
-                          value={invoiceAmount} 
-                          onChange={(e) => setInvoiceAmount(e.target.value)}
-                        />
-                      </div>
-                      
-                      {job.booking_fee_paid && invoiceAmount && (
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2 text-sm">
-                          <div className="flex justify-between text-slate-500">
-                            <span>Subtotal</span>
-                            <span>{invoiceAmount} ETB</span>
-                          </div>
-                          <div className="flex justify-between text-green-600">
-                            <span>Minus Deposit (Paid)</span>
-                            <span>-{job.booking_fee_amount} ETB</span>
-                          </div>
-                          <div className="flex justify-between font-bold border-t border-slate-200 pt-2 text-base">
-                            <span>Final Due to Technician</span>
-                            <span>{Math.max(0, Number(invoiceAmount) - Number(job.booking_fee_amount))} ETB</span>
-                          </div>
+                {!isTech && (
+                  <>
+                    <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="secondary">
+                          <CalendarDays />
+                          Schedule & Notify
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Schedule Repair</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <p className="text-sm text-muted-foreground">
+                            Set a date and time for this repair. The customer will automatically receive
+                            an email (and Telegram if provided) notification.
+                          </p>
+                          <input
+                            type="datetime-local"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                            value={scheduleDate}
+                            onChange={(e) => setScheduleDate(e.target.value)}
+                          />
+                          <Button
+                            onClick={() =>
+                              scheduleMutation.mutate({
+                                scheduled_at: new Date(scheduleDate).toISOString(),
+                                status: "scheduled",
+                              })
+                            }
+                          >
+                            Confirm & Notify
+                          </Button>
                         </div>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                )}
+                {!isTech && (
+                  <Dialog open={invoiceOpen} onOpenChange={setInvoiceOpen}>
+                    <DialogTrigger asChild>
+                      {job.status === "completed" ? (
+                        <Button>
+                          <ReceiptText className="mr-2 h-4 w-4" />
+                          Create invoice
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            statusMutation.mutate("completed");
+                            toast.success("Job marked as completed!");
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Mark as Completed
+                        </Button>
                       )}
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create Invoice for {job.title}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>Total Repair Cost (Birr)</Label>
+                          <Input 
+                            type="number" 
+                            placeholder="e.g. 1500" 
+                            value={invoiceAmount} 
+                            onChange={(e) => setInvoiceAmount(e.target.value)}
+                          />
+                        </div>
+                        
+                        {job.booking_fee_paid && invoiceAmount && (
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2 text-sm">
+                            <div className="flex justify-between text-slate-500">
+                              <span>Subtotal</span>
+                              <span>{invoiceAmount} ETB</span>
+                            </div>
+                            <div className="flex justify-between text-green-600">
+                              <span>Minus Deposit (Paid)</span>
+                              <span>-{job.booking_fee_amount} ETB</span>
+                            </div>
+                            <div className="flex justify-between font-bold border-t border-slate-200 pt-2 text-base">
+                              <span>Final Due to Technician</span>
+                              <span>{Math.max(0, Number(invoiceAmount) - Number(job.booking_fee_amount))} ETB</span>
+                            </div>
+                          </div>
+                        )}
 
-                      <Button 
-                        disabled={!invoiceAmount || invoiceMutation.isPending}
-                        onClick={() => invoiceMutation.mutate(Number(invoiceAmount))}
-                        className="w-full"
-                      >
-                        {invoiceMutation.isPending ? "Creating..." : "Generate Invoice"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                        <Button 
+                          disabled={!invoiceAmount || invoiceMutation.isPending}
+                          onClick={() => invoiceMutation.mutate(Number(invoiceAmount))}
+                          className="w-full"
+                        >
+                          {invoiceMutation.isPending ? "Creating..." : "Generate Invoice"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
                 <Select value={job.status} onValueChange={(v) => statusMutation.mutate(v)}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Update status" />
@@ -355,30 +364,32 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
           <section className="panel">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Assigned technician</h2>
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    Reassign
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Reassign job</DialogTitle>
-                  </DialogHeader>
-                  <Select onValueChange={(v) => mutation.mutate(v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a technician" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {techs.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name} · {t.specialty}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </DialogContent>
-              </Dialog>
+              {!isTech && (
+                <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      Reassign
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Reassign job</DialogTitle>
+                    </DialogHeader>
+                    <Select onValueChange={(v) => mutation.mutate(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a technician" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {techs.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name} · {t.specialty}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
             <div className="contact-card mt-5">
               <span className="avatar avatar-lg">
