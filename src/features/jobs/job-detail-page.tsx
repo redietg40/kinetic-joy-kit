@@ -103,7 +103,9 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
         payment_method: "Chapa",
         chapa_tx_ref: `tx-${Date.now()}`,
         issued_at: new Date().toISOString(),
-        paid_at: null
+        paid_at: null,
+        commission_amount: amount * 0.30,
+        payout_status: "pending"
       });
     },
     onSuccess: () => {
