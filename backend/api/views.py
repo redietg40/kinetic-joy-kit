@@ -99,8 +99,23 @@ class ChapaWebhookView(APIView):
     
     def post(self, request):
         job_id = request.data.get("job_id")
+        invoice_id = request.data.get("invoice_id")
+        
+        if invoice_id:
+            try:
+                invoice = Invoice.objects.get(id=invoice_id)
+                if invoice.status != 'paid':
+                    invoice.status = 'paid'
+                    from django.utils import timezone
+                    invoice.paid_at = timezone.now()
+                    invoice.save()
+                    return Response({"status": "Invoice payment verified."})
+                return Response({"status": "Invoice already paid."})
+            except Invoice.DoesNotExist:
+                return Response({"error": "Invoice not found"}, status=404)
+                
         if not job_id:
-            return Response({"error": "Missing job_id"}, status=400)
+            return Response({"error": "Missing job_id or invoice_id"}, status=400)
             
         try:
             job = Job.objects.get(id=job_id)

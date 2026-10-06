@@ -11,7 +11,8 @@ export function ChapaMockPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const jobId = search.job_id as string;
+  const jobId = search.job_id as string | undefined;
+  const invoiceId = search.invoice_id as string | undefined;
   const amount = search.amount as string;
 
   const handlePay = async () => {
@@ -21,13 +22,17 @@ export function ChapaMockPage() {
       const res = await fetch(`${API_BASE_URL}/api/webhooks/chapa/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job_id: jobId })
+        body: JSON.stringify({ job_id: jobId, invoice_id: invoiceId })
       });
       if (!res.ok) throw new Error("Payment failed");
       
       setSuccess(true);
       setTimeout(() => {
-        navigate({ to: "/booking-success", search: { job_id: jobId } });
+        if (invoiceId) {
+          navigate({ to: "/invoices" });
+        } else {
+          navigate({ to: "/booking-success", search: { job_id: jobId } });
+        }
       }, 2000);
     } catch (e) {
       toast.error("Payment failed. Please try again.");
@@ -55,7 +60,9 @@ export function ChapaMockPage() {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-bold text-slate-800">Chapa Secure Checkout</h1>
-          <p className="text-slate-500 text-sm mt-1">Pay your booking deposit to confirm your repair.</p>
+          <p className="text-slate-500 text-sm mt-1">
+            {invoiceId ? "Pay your invoice securely online." : "Pay your booking deposit to confirm your repair."}
+          </p>
         </div>
 
         <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100 text-center">
