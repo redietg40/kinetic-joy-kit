@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Eye, EyeOff, Wrench, User } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Wrench, User, BriefcaseBusiness } from "lucide-react";
 import { login, register } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ const signupSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(), 
   password: z.string().min(6),
-  role: z.literal("technician")
+  role: z.enum(["owner", "technician"])
 });
 
 type LoginData = z.infer<typeof loginSchema>;
@@ -65,7 +65,7 @@ export function LoginPage({ expired }: { expired?: boolean | undefined }) {
 
   const signupForm = useForm<SignupData>({ 
     resolver: zodResolver(signupSchema),
-    defaultValues: { role: "technician" }
+    defaultValues: { role: "owner" }
   });
 
   const onLogin = async (data: LoginData) => {
@@ -198,15 +198,26 @@ export function LoginPage({ expired }: { expired?: boolean | undefined }) {
               onSubmit={signupForm.handleSubmit(onSignup)} 
               className="grid gap-4"
             >
-              <div className="grid grid-cols-1 gap-2 mb-2">
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 <motion.button 
                   type="button"
+                  onClick={() => signupForm.setValue("role", "owner")}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="py-3 border border-primary bg-primary/5 text-primary rounded-xl text-sm font-bold flex flex-col items-center gap-1 cursor-default shadow-sm"
+                  className={`py-3 border rounded-xl text-sm font-bold flex flex-col items-center gap-1 shadow-sm ${signupForm.watch("role") === "owner" ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-500 hover:border-slate-300"}`}
+                >
+                  <BriefcaseBusiness className="w-5 h-5 mb-1" />
+                  Business Owner
+                </motion.button>
+                <motion.button 
+                  type="button"
+                  onClick={() => signupForm.setValue("role", "technician")}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`py-3 border rounded-xl text-sm font-bold flex flex-col items-center gap-1 shadow-sm ${signupForm.watch("role") === "technician" ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-500 hover:border-slate-300"}`}
                 >
                   <Wrench className="w-5 h-5 mb-1" />
-                  Service Professional
+                  Technician
                 </motion.button>
               </div>
 
