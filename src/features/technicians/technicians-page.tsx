@@ -112,34 +112,12 @@ export function TechniciansPage() {
                 <p><Phone className="w-4 h-4 mr-2 inline" />{t.phone}</p>
                 <p><Mail className="w-4 h-4 mr-2 inline" />{t.email}</p>
               </div>
-              <div className="assignment-box mb-4">
+              <div className="assignment-box">
                 <span><CalendarClock className="w-4 h-4 inline mr-2" />Today’s assignments</span>
                 <strong>{assigned.length}</strong>
                 {assigned.slice(0,2).map(j => (
                   <small key={j.id}>{new Date(j.scheduled_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})} · {j.title}</small>
                 ))}
-              </div>
-              
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mt-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-slate-500 font-medium">Pending Commission</span>
-                  <span className="text-lg font-bold text-[#0C8C5E]">
-                    ETB {(() => {
-                      const techInvoices = invoices.filter(inv => jobs.find(j => j.id === inv.job_id)?.technician_id === t.id);
-                      return techInvoices
-                        .filter(inv => inv.payout_status === "pending" && inv.status === "paid")
-                        .reduce((acc, inv) => acc + (inv.commission_amount || 0), 0)
-                        .toFixed(2);
-                    })()}
-                  </span>
-                </div>
-                <Button 
-                  onClick={() => settleMutation.mutate(t.id)}
-                  disabled={settleMutation.isPending}
-                  className="w-full bg-[#E51B24] hover:bg-[#c9171f] text-white mt-2"
-                >
-                  Settle Payout
-                </Button>
               </div>
             </article>
           );

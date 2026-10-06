@@ -191,10 +191,25 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                 </Dialog>
                 <Dialog open={invoiceOpen} onOpenChange={setInvoiceOpen}>
                   <DialogTrigger asChild>
-                    <Button disabled={job.status !== "completed"}>
-                      <ReceiptText className="mr-2 h-4 w-4" />
-                      Create invoice
-                    </Button>
+                    {job.status === "completed" ? (
+                      <Button>
+                        <ReceiptText className="mr-2 h-4 w-4" />
+                        Create invoice
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          statusMutation.mutate("completed");
+                          toast.success("Job marked as completed!");
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Mark as Completed
+                      </Button>
+                    )}
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
