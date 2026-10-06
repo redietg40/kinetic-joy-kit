@@ -221,19 +221,19 @@ export function LoginPage({ expired }: { expired?: boolean | undefined }) {
                 </motion.button>
               </div>
 
-              <Label>Full Name
-                <Input type="text" className="mt-1 transition-all focus:ring-2 focus:ring-primary/20" {...signupForm.register("name")} />
+              <Label className="text-slate-700">Full Name
+                <Input type="text" className="mt-1 transition-all focus:ring-2 focus:ring-primary/20 text-slate-900 bg-white border-slate-200 placeholder:text-slate-400" {...signupForm.register("name")} />
               </Label>
               {signupForm.formState.errors.name && <small className="text-destructive">Name is required.</small>}
 
-              <Label>Email address
-                <Input type="email" className="mt-1 transition-all focus:ring-2 focus:ring-primary/20" {...signupForm.register("email")} />
+              <Label className="text-slate-700">Email address
+                <Input type="email" className="mt-1 transition-all focus:ring-2 focus:ring-primary/20 text-slate-900 bg-white border-slate-200 placeholder:text-slate-400" {...signupForm.register("email")} />
               </Label>
               {signupForm.formState.errors.email && <small className="text-destructive">Valid email required.</small>}
 
-              <Label>Password
+              <Label className="text-slate-700">Password
                 <div className="password-field mt-1 relative">
-                  <Input type={show ? "text" : "password"} className="transition-all focus:ring-2 focus:ring-primary/20" {...signupForm.register("password")} />
+                  <Input type={show ? "text" : "password"} className="transition-all focus:ring-2 focus:ring-primary/20 text-slate-900 bg-white border-slate-200 placeholder:text-slate-400" {...signupForm.register("password")} />
                   <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1 h-8 w-8 text-slate-400 hover:text-primary" onClick={() => setShow(!show)}>
                     {show ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
                   </Button>
@@ -257,14 +257,14 @@ export function LoginPage({ expired }: { expired?: boolean | undefined }) {
               onSubmit={loginForm.handleSubmit(onLogin)} 
               className="grid gap-4"
             >
-              <Label>Email address
-                <Input type="email" className="mt-1 transition-all focus:ring-2 focus:ring-primary/20" {...loginForm.register("email")} />
+              <Label className="text-slate-700">Email address
+                <Input type="email" className="mt-1 transition-all focus:ring-2 focus:ring-primary/20 text-slate-900 bg-white border-slate-200 placeholder:text-slate-400" {...loginForm.register("email")} />
               </Label>
               {loginForm.formState.errors.email && <small className="text-destructive">Enter a valid email.</small>}
 
-              <Label>Password
+              <Label className="text-slate-700">Password
                 <div className="password-field mt-1 relative">
-                  <Input type={show ? "text" : "password"} className="transition-all focus:ring-2 focus:ring-primary/20" {...loginForm.register("password")} />
+                  <Input type={show ? "text" : "password"} className="transition-all focus:ring-2 focus:ring-primary/20 text-slate-900 bg-white border-slate-200 placeholder:text-slate-400" {...loginForm.register("password")} />
                   <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1 h-8 w-8 text-slate-400 hover:text-primary" onClick={() => setShow(!show)}>
                     {show ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
                   </Button>
