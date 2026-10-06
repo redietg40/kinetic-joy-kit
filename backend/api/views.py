@@ -263,6 +263,12 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n{bot_msg}\r\n'.encode('utf-8'))
                     # Add parse_mode
                     body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="parse_mode"\r\n\r\nMarkdown\r\n'.encode('utf-8'))
+                    
+                    # Add inline keyboard button for Chapa checkout
+                    checkout_url = f"http://localhost:8080/chapa-checkout?invoice_id={invoice.id}&amount={invoice.total}"
+                    reply_markup = json.dumps({"inline_keyboard": [[{"text": "💳 Pay via Chapa", "url": checkout_url}]]})
+                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="reply_markup"\r\n\r\n{reply_markup}\r\n'.encode('utf-8'))
+                    
                     # Add photo
                     body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="photo"; filename="invoice.png"\r\nContent-Type: image/png\r\n\r\n'.encode('utf-8'))
                     body.extend(image_bytes)
