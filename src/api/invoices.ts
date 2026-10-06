@@ -25,8 +25,9 @@ export async function saveInvoice(invoice: Invoice) {
   });
 }
 
-export async function sendInvoiceTelegram(id: string) {
+export async function sendInvoiceTelegram(id: string, image_data?: string) {
   return apiRequest<{status?: string, error?: string}>(`/api/invoices/${id}/send_telegram/`, {
-    method: 'POST'
+    method: 'POST',
+    body: image_data ? JSON.stringify({ image_data }) : undefined
   });
 }
