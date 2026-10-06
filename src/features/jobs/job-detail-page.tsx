@@ -42,7 +42,7 @@ import type { Job } from "@/types";
 export function JobDetailPage({ jobId }: { jobId: string }) {
   const qc = useQueryClient();
   const session = getSession();
-  const isTech = session?.role === "Technician";
+  const isTech = session?.role?.toLowerCase() === "technician";
   const { data: job } = useSuspenseQuery({
     queryKey: ["job", jobId],
     queryFn: () => getJob(jobId),
