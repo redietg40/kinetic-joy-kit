@@ -271,17 +271,19 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                     </DialogContent>
                   </Dialog>
                 )}
-                <Select value={job.status} onValueChange={(v) => statusMutation.mutate(v)}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Update status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
+                {!isTech && (
+                  <Select value={job.status} onValueChange={(v) => statusMutation.mutate(v)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Update status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
             <div className="timeline">
