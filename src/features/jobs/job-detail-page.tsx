@@ -41,7 +41,8 @@ import { friendlyDate } from "@/lib/format";
 import type { Job } from "@/types";
 export function JobDetailPage({ jobId }: { jobId: string }) {
   const qc = useQueryClient();
-  const session = getSession();
+  const [session, setSession] = useState(getSession());
+  useEffect(() => { setSession(getSession()); }, []);
   const isTech = session?.role?.toLowerCase() === "technician";
   const { data: job } = useSuspenseQuery({
     queryKey: ["job", jobId],
