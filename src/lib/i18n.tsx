@@ -173,6 +173,8 @@ const translations = {
   }
 };
 
+import { getSession } from "./auth";
+
 type I18nContextType = {
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -183,17 +185,24 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [language, setLang] = useState<Language>("en");
-
+  
   useEffect(() => {
-    const saved = localStorage.getItem("app_lang") as Language;
+    const user = getSession();
+    const storageKey = user ? `app_lang_${user.id}` : "app_lang_guest";
+    const saved = localStorage.getItem(storageKey) as Language;
     if (saved && (saved === "en" || saved === "am")) {
       setLang(saved);
+    } else {
+      // Default fallback
+      setLang("en");
     }
   }, []);
 
   const setLanguage = (lang: Language) => {
+    const user = getSession();
+    const storageKey = user ? `app_lang_${user.id}` : "app_lang_guest";
     setLang(lang);
-    localStorage.setItem("app_lang", lang);
+    localStorage.setItem(storageKey, lang);
   };
 
   const t = (key: keyof typeof translations.en) => {

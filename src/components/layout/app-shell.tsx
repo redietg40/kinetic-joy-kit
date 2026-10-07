@@ -23,7 +23,10 @@ export function AppShell({children,title,description,actions}:{children:ReactNod
   useEffect(()=>{document.documentElement.classList.toggle("dark",dark)},[dark]);
   
   if(!ready||!user) return <div className="brand-loader"><div className="loader-mark"><span/><span/><span/></div><p>Preparing your workspace</p></div>;
-  const doLogout=async()=>{await logout(); void navigate({to:"/login",search:{expired:undefined}})};
+  const doLogout = async () => { 
+    await logout(); 
+    window.location.href = "/login"; 
+  };
   
   let nav=[
     {to:"/",label:t("Overview"),icon:BarChart3},
