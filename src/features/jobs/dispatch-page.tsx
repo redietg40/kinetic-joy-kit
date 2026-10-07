@@ -64,7 +64,7 @@ export function DispatchPage() {
     >
       <div className="flex flex-col gap-6 page-enter">
         {/* Map Panel */}
-        <div className="panel p-0 overflow-hidden relative bg-slate-900 border border-slate-800 rounded-2xl h-[300px]">
+        <div className="panel p-0 overflow-hidden relative bg-slate-900 border border-slate-800 rounded-2xl" style={{ minHeight: '300px' }}>
           {/* Map Grid Background */}
           <div className="absolute inset-0 opacity-20" style={{
             backgroundImage: 'linear-gradient(var(--primary) 1px, transparent 1px), linear-gradient(90deg, var(--primary) 1px, transparent 1px)',
