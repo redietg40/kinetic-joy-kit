@@ -49,6 +49,8 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class TechnicianSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False)
+    
     class Meta:
         model = Technician
         fields = '__all__'
@@ -56,11 +58,12 @@ class TechnicianSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         from django.contrib.auth.models import User
         email = validated_data.get('email')
+        password = validated_data.pop('password', 'password123')
         if email and not User.objects.filter(username=email).exists():
             User.objects.create_user(
                 username=email,
                 email=email,
-                password='password123'
+                password=password
             )
         return super().create(validated_data)
 

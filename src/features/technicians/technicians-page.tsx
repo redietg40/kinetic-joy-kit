@@ -18,7 +18,7 @@ export function TechniciansPage() {
   const { data: jobs } = useSuspenseQuery({ queryKey: ["jobs"], queryFn: listJobs });
   const { data: invoices } = useSuspenseQuery({ queryKey: ["invoices"], queryFn: listInvoices });
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "", specialty: "General", status: "offline" as const });
+  const [formData, setFormData] = useState({ name: "", email: "", phone: "", specialty: "General", status: "offline" as const, password: "" });
 
   const mutation = useMutation({
     mutationFn: saveTechnician,
@@ -26,7 +26,7 @@ export function TechniciansPage() {
       void qc.invalidateQueries({ queryKey: ["technicians"] });
       setOpen(false);
       toast.success("Technician added successfully!");
-      setFormData({ name: "", email: "", phone: "", specialty: "General", status: "offline" });
+      setFormData({ name: "", email: "", phone: "", specialty: "General", status: "offline", password: "" });
     },
     onError: () => {
       toast.error("Failed to add technician.");
@@ -80,6 +80,10 @@ export function TechniciansPage() {
               <div className="space-y-2">
                 <Label>Email</Label>
                 <Input value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required type="email" placeholder="john@fieldflow.et" />
+              </div>
+              <div className="space-y-2">
+                <Label>Login Password</Label>
+                <Input value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required type="text" placeholder="Set a unique password for them" />
               </div>
               <div className="space-y-2">
                 <Label>Phone</Label>
