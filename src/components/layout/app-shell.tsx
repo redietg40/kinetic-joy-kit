@@ -9,7 +9,7 @@ import { useTranslation } from "@/lib/i18n";
 
 export function AppShell({children,title,description,actions}:{children:ReactNode;title:string;description:string;actions?:ReactNode}){
   const navigate=useNavigate(); const location=useLocation(); const [collapsed,setCollapsed]=useState(false); const [mobile,setMobile]=useState(false); const [dark,setDark]=useState(true); const [ready,setReady]=useState(false); const [user,setUser]=useState(getSession());
-  const { t } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   useEffect(()=>{
     const session=getSession(); 
     setUser(session); 
@@ -94,6 +94,24 @@ export function AppShell({children,title,description,actions}:{children:ReactNod
             <div className="ml-auto flex items-center gap-2">
               <span className="live-dot"/>
               <span className="hidden text-xs text-muted-foreground sm:inline">All systems operational</span>
+              <div className="flex items-center gap-1 bg-secondary/50 p-1 rounded-lg border border-border">
+                <Button 
+                  variant={language === 'en' ? 'default' : 'ghost'} 
+                  size="sm" 
+                  className="h-7 px-2 text-xs font-semibold" 
+                  onClick={() => setLanguage('en')}
+                >
+                  EN
+                </Button>
+                <Button 
+                  variant={language === 'am' ? 'default' : 'ghost'} 
+                  size="sm" 
+                  className="h-7 px-2 text-xs font-semibold" 
+                  onClick={() => setLanguage('am')}
+                >
+                  አማ
+                </Button>
+              </div>
               <Button variant="ghost" size="icon" onClick={()=>setDark(!dark)} aria-label="Toggle theme">{dark?<Sun/>:<Moon/>}</Button>
             </div>
           </header>

@@ -14,8 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useForm } from "react-hook-form";
 import { API_BASE_URL } from "@/api/client";
 import { Textarea } from "@/components/ui/textarea";
+import { useTranslation } from "@/lib/i18n";
 
 export function CustomerPortal() {
+  const { t, language, setLanguage } = useTranslation();
   const [email, setEmail] = useState("");
   const [activeEmail, setActiveEmail] = useState("");
 
@@ -70,6 +72,22 @@ export function CustomerPortal() {
 
   return (
     <main className="min-h-screen bg-slate-50 overflow-hidden relative">
+      {/* Top-Right Language Switcher */}
+      <div className="absolute top-4 right-6 z-50 flex gap-2 bg-white/10 backdrop-blur-md p-1 rounded-lg border border-white/20 shadow-sm">
+        <button 
+          className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white'}`}
+          onClick={() => setLanguage('en')}
+        >
+          EN
+        </button>
+        <button 
+          className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${language === 'am' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white'}`}
+          onClick={() => setLanguage('am')}
+        >
+          አማ
+        </button>
+      </div>
+
       <div className="absolute top-0 left-0 w-full h-[400px] bg-slate-900 z-0 overflow-hidden">
         <div className="absolute inset-0 bg-[url('/login-bg.png')] bg-cover bg-center opacity-40 mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50" />
