@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as BookRouteImport } from './routes/book'
 import { Route as BookingSuccessRouteImport } from './routes/booking-success'
 import { Route as ChapaCheckoutRouteImport } from './routes/chapa-checkout'
 import { Route as CustomerRouteImport } from './routes/customer'
@@ -28,11 +27,6 @@ import { Route as JobsJobIdRouteImport } from './routes/jobs_.$jobId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookRoute = BookRouteImport.update({
-  id: '/book',
-  path: '/book',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookingSuccessRoute = BookingSuccessRouteImport.update({
@@ -103,7 +97,6 @@ const JobsJobIdRoute = JobsJobIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/book': typeof BookRoute
   '/booking-success': typeof BookingSuccessRoute
   '/chapa-checkout': typeof ChapaCheckoutRoute
   '/customer': typeof CustomerRoute
@@ -120,7 +113,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/book': typeof BookRoute
   '/booking-success': typeof BookingSuccessRoute
   '/chapa-checkout': typeof ChapaCheckoutRoute
   '/customer': typeof CustomerRoute
@@ -138,7 +130,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/book': typeof BookRoute
   '/booking-success': typeof BookingSuccessRoute
   '/chapa-checkout': typeof ChapaCheckoutRoute
   '/customer': typeof CustomerRoute
@@ -157,7 +148,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/book'
     | '/booking-success'
     | '/chapa-checkout'
     | '/customer'
@@ -174,7 +164,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/book'
     | '/booking-success'
     | '/chapa-checkout'
     | '/customer'
@@ -191,7 +180,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/book'
     | '/booking-success'
     | '/chapa-checkout'
     | '/customer'
@@ -209,7 +197,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BookRoute: typeof BookRoute
   BookingSuccessRoute: typeof BookingSuccessRoute
   ChapaCheckoutRoute: typeof ChapaCheckoutRoute
   CustomerRoute: typeof CustomerRoute
@@ -232,13 +219,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/book': {
-      id: '/book'
-      path: '/book'
-      fullPath: '/book'
-      preLoaderRoute: typeof BookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/booking-success': {
@@ -337,7 +317,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BookRoute: BookRoute,
   BookingSuccessRoute: BookingSuccessRoute,
   ChapaCheckoutRoute: ChapaCheckoutRoute,
   CustomerRoute: CustomerRoute,

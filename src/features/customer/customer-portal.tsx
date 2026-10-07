@@ -9,15 +9,23 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { friendlyDate, money } from "@/lib/format";
 import { motion } from "framer-motion";
-import { CheckCircle2, ChevronRight, MapPin, Receipt, Wrench } from "lucide-react";
+import { CheckCircle2, ChevronRight, MapPin, Receipt, Wrench, Plus, CalendarClock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { API_BASE_URL } from "@/api/client";
+import { Textarea } from "@/components/ui/textarea";
 
 export function CustomerPortal() {
   const [email, setEmail] = useState("");
   const [activeEmail, setActiveEmail] = useState("");
 
   const { data: customers } = useQuery({ queryKey: ["customers"], queryFn: listCustomers });
-  const { data: jobs } = useQuery({ queryKey: ["jobs"], queryFn: listJobs, enabled: !!activeEmail });
+  const { data: jobs, refetch: refetchJobs } = useQuery({ queryKey: ["jobs"], queryFn: listJobs, enabled: !!activeEmail });
   const { data: invoices } = useQuery({ queryKey: ["invoices"], queryFn: listInvoices, enabled: !!activeEmail });
+
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const bookingForm = useForm();
 
   const customer = customers?.find(c => c.email.toLowerCase() === activeEmail.toLowerCase());
   const customerJobs = jobs?.filter(j => j.customer_id === customer?.id) || [];
@@ -26,6 +34,38 @@ export function CustomerPortal() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) setActiveEmail(email);
+  };
+
+  const handleBookService = async (data: any) => {
+    if (!customer) return;
+    setBookingSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/book/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          name: customer.name, 
+          email: customer.email, 
+          phone: customer.phone || "000000", 
+          address: customer.address || "Addis Ababa",
+          title: data.title,
+          description: data.description,
+          service_type: "General" 
+        })
+      });
+      const resData = await res.json();
+      if (resData.checkout_url) {
+        window.location.href = resData.checkout_url;
+      } else {
+        setBookingOpen(false);
+        bookingForm.reset();
+        refetchJobs();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBookingSubmitting(false);
+    }
   };
 
   return (
@@ -85,7 +125,34 @@ export function CustomerPortal() {
                 <h2 className="text-2xl font-bold text-slate-900">Welcome back, {customer.name}!</h2>
                 <p className="text-slate-500">{customer.address}</p>
               </div>
-              <Button variant="outline" onClick={() => setActiveEmail("")}>Sign Out</Button>
+              <div className="flex gap-4">
+                <Dialog open={bookingOpen} onOpenChange={setBookingOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
+                      <Plus className="w-4 h-4 mr-2" /> Book New Service
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Book a New Service</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={bookingForm.handleSubmit(handleBookService)} className="space-y-4 pt-4">
+                      <div>
+                        <Label>What do you need help with?</Label>
+                        <Input {...bookingForm.register("title", { required: true })} placeholder="e.g. Broken AC unit, Leaking pipe" className="mt-1" />
+                      </div>
+                      <div>
+                        <Label>Detailed Description (Optional)</Label>
+                        <Textarea {...bookingForm.register("description")} placeholder="Provide any additional details for the technician..." className="mt-1" />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={bookingSubmitting}>
+                        {bookingSubmitting ? "Processing..." : "Submit & Pay Booking Fee"}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+                <Button variant="outline" onClick={() => setActiveEmail("")}>Sign Out</Button>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
