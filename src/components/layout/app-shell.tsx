@@ -43,7 +43,11 @@ export function AppShell({children,title,description,actions}:{children:ReactNod
   
   if (user.role === 'Technician') {
     // @ts-ignore - TS thinks nav is strictly the tuple above
-    nav = [{to:"/jobs",label:"My Jobs",icon:BriefcaseBusiness},{to:"/messages",label:"Messages",icon:MessageSquare}];
+    nav = [
+      {to:"/jobs",label:t("Jobs"),icon:BriefcaseBusiness},
+      {to:"/messages",label:t("Messages"),icon:MessageSquare},
+      {to:"/settings",label:t("Settings"),icon:Settings}
+    ];
   }
   
   return (
