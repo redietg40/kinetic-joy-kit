@@ -173,7 +173,7 @@ const translations = {
   }
 };
 
-import { getSession } from "./auth";
+import { getSession } from "@/api/auth";
 
 type I18nContextType = {
   language: Language;
