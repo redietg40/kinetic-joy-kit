@@ -16,6 +16,7 @@ import { Route as CustomerRouteImport } from './routes/customer'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DirectoryRouteImport } from './routes/directory'
 import { Route as DispatchRouteImport } from './routes/dispatch'
+import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MessagesRouteImport } from './routes/messages'
@@ -58,6 +59,11 @@ const DirectoryRoute = DirectoryRouteImport.update({
 const DispatchRoute = DispatchRouteImport.update({
   id: '/dispatch',
   path: '/dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InvoicesRoute = InvoicesRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof CustomersRoute
   '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
+  '/inventory': typeof InventoryRoute
   '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersRoute
   '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
+  '/inventory': typeof InventoryRoute
   '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/customers': typeof CustomersRoute
   '/directory': typeof DirectoryRoute
   '/dispatch': typeof DispatchRoute
+  '/inventory': typeof InventoryRoute
   '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/directory'
     | '/dispatch'
+    | '/inventory'
     | '/invoices'
     | '/login'
     | '/messages'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/directory'
     | '/dispatch'
+    | '/inventory'
     | '/invoices'
     | '/login'
     | '/messages'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/directory'
     | '/dispatch'
+    | '/inventory'
     | '/invoices'
     | '/login'
     | '/messages'
@@ -215,6 +227,7 @@ export interface RootRouteChildren {
   CustomersRoute: typeof CustomersRoute
   DirectoryRoute: typeof DirectoryRoute
   DispatchRoute: typeof DispatchRoute
+  InventoryRoute: typeof InventoryRoute
   InvoicesRoute: typeof InvoicesRoute
   LoginRoute: typeof LoginRoute
   MessagesRoute: typeof MessagesRoute
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       path: '/dispatch'
       fullPath: '/dispatch'
       preLoaderRoute: typeof DispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invoices': {
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersRoute: CustomersRoute,
   DirectoryRoute: DirectoryRoute,
   DispatchRoute: DispatchRoute,
+  InventoryRoute: InventoryRoute,
   InvoicesRoute: InvoicesRoute,
   LoginRoute: LoginRoute,
   MessagesRoute: MessagesRoute,

@@ -10,11 +10,13 @@ import {
   Phone,
   ReceiptText,
   UserRound,
+  Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getJob, updateJob } from "@/api/jobs";
 import { listCustomers } from "@/api/customers";
 import { listTechnicians } from "@/api/technicians";
+import { listInventory, listJobParts, useJobPart } from "@/api/inventory";
 import { saveInvoice } from "@/api/invoices";
 import { getSession } from "@/api/auth";
 import { useNavigate } from "@tanstack/react-router";
@@ -51,7 +53,11 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
   });
   const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
   const { data: techs } = useSuspenseQuery({ queryKey: ["technicians"], queryFn: listTechnicians });
+  const { data: inventory = [] } = useQuery({ queryKey: ["inventory"], queryFn: listInventory });
+  const { data: jobParts = [] } = useQuery({ queryKey: ["jobParts", jobId], queryFn: () => listJobParts(jobId) });
+  
   const [open, setOpen] = useState(false);
+  const [partOpen, setPartOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [invoiceOpen, setInvoiceOpen] = useState(false);
@@ -88,6 +94,16 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["job", jobId] });
       toast.success("Announcement sent to owner!");
+    }
+  });
+
+  const partMutation = useMutation({
+    mutationFn: useJobPart,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["jobParts", jobId] });
+      void qc.invalidateQueries({ queryKey: ["inventory"] });
+      setPartOpen(false);
+      toast.success("Part recorded successfully");
     }
   });
   
@@ -340,15 +356,64 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
           <section className="panel">
             <div className="panel-heading">
               <div>
-                <h2>Field photos</h2>
-                <p>Photos uploaded from the technician app</p>
+                <h2>Parts Used</h2>
+                <p>Track materials and parts consumed on this job</p>
               </div>
+              {isTech && job.status !== "completed" && (
+                <Dialog open={partOpen} onOpenChange={setPartOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="secondary" size="sm">Add Part</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Record Part Usage</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={e => {
+                      e.preventDefault();
+                      const fd = new FormData(e.currentTarget);
+                      partMutation.mutate({
+                        job: jobId,
+                        item: fd.get("item") as string,
+                        quantity_used: parseInt(fd.get("quantity") as string, 10)
+                      });
+                    }} className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Select Part</Label>
+                        <select required name="item" className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-sm">
+                          <option value="">-- Choose part --</option>
+                          {inventory.filter(i => i.quantity > 0).map(i => (
+                            <option key={i.id} value={i.id}>{i.name} ({i.quantity} {i.unit} in stock)</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Quantity Used</Label>
+                        <Input required name="quantity" type="number" min="1" defaultValue="1" />
+                      </div>
+                      <Button type="submit" disabled={partMutation.isPending}>Record Part</Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
-            <div className="empty-state">
-              <Camera />
-              <strong>No field photos yet</strong>
-              <p>Photos appear here when the technician uploads them.</p>
-            </div>
+            {jobParts.length === 0 ? (
+              <div className="empty-state py-4 border-none">
+                <Wrench className="opacity-50" />
+                <p>No parts recorded yet.</p>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-2">
+                {jobParts.map(jp => (
+                  <div key={jp.id} className="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                    <div>
+                      <p className="text-sm font-medium">{jp.item_details?.name || 'Unknown Part'}</p>
+                      <p className="text-xs text-slate-500">Recorded {new Date(jp.recorded_at).toLocaleDateString()}</p>
+                    </div>
+                    <span className="text-sm font-medium">{jp.quantity_used} {jp.item_details?.unit}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
         <aside className="space-y-6">

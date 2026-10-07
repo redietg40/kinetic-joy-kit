@@ -90,3 +90,25 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"From {self.sender} to {self.receiver} at {self.timestamp}"
+
+class InventoryItem(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=100) # e.g. 'Electrical', 'Plumbing'
+    quantity = models.IntegerField(default=0)
+    unit = models.CharField(max_length=50, default='pcs') # e.g. 'pcs', 'meters'
+    reorder_level = models.IntegerField(default=5)
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"{self.name} ({self.quantity} {self.unit})"
+
+class JobPartUsage(models.Model):
+    job = models.ForeignKey('Job', on_delete=models.CASCADE, related_name='parts_used')
+    item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE)
+    quantity_used = models.IntegerField(default=1)
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.quantity_used} of {self.item.name} for {self.job.title}"

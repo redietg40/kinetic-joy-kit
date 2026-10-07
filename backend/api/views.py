@@ -308,9 +308,24 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": f"Telegram API error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-from .models import ChatMessage
-from .serializers import ChatMessageSerializer
+from .models import ChatMessage, InventoryItem, JobPartUsage
+from .serializers import ChatMessageSerializer, InventoryItemSerializer, JobPartUsageSerializer
 
 class ChatMessageViewSet(viewsets.ModelViewSet):
     queryset = ChatMessage.objects.all()
     serializer_class = ChatMessageSerializer
+
+class InventoryItemViewSet(viewsets.ModelViewSet):
+    queryset = InventoryItem.objects.all()
+    serializer_class = InventoryItemSerializer
+
+class JobPartUsageViewSet(viewsets.ModelViewSet):
+    queryset = JobPartUsage.objects.all()
+    serializer_class = JobPartUsageSerializer
+
+    def perform_create(self, serializer):
+        # deduct quantity from inventory
+        usage = serializer.save()
+        item = usage.item
+        item.quantity -= usage.quantity_used
+        item.save()

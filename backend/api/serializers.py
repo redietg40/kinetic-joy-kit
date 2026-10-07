@@ -83,8 +83,19 @@ class InvoiceSerializer(serializers.ModelSerializer):
         model = Invoice
         fields = ('id', 'subtotal', 'tax', 'total', 'currency', 'status', 'payment_method', 'chapa_tx_ref', 'issued_at', 'paid_at', 'job_id', 'customer_id', 'line_items')
 
-from .models import ChatMessage
+from .models import ChatMessage, InventoryItem, JobPartUsage
 class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatMessage
+        fields = '__all__'
+
+class InventoryItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InventoryItem
+        fields = '__all__'
+
+class JobPartUsageSerializer(serializers.ModelSerializer):
+    item_details = InventoryItemSerializer(source='item', read_only=True)
+    class Meta:
+        model = JobPartUsage
         fields = '__all__'
