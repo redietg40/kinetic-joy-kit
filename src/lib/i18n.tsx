@@ -47,7 +47,45 @@ const translations = {
     "Directory Desc": "Welcome to FieldFlow, your premium hub for connecting with certified HVAC, Plumbing, and Electrical experts.",
     "Meet Techs": "Meet Our Top Technicians",
     "Techs Desc": "Browse our roster of highly skilled and customer-approved service professionals ready to solve your problems.",
-    "Request Service": "Request Service"
+    "Request Service": "Request Service",
+
+    // Jobs Page
+    "Jobs Title": "Jobs",
+    "Jobs Desc": "Schedule, assign, and track every service call.",
+    "Dispatch board": "Dispatch board",
+    "New job": "New job",
+    "Search jobs": "Search jobs, addresses or IDs",
+    "All statuses": "All statuses",
+    "All services": "All services",
+    "Job": "Job",
+    "Customer": "Customer",
+    "Service": "Service",
+    "Schedule": "Schedule",
+    "Technician": "Technician",
+    "Status": "Status",
+    "Priority": "Priority",
+    "Unassigned": "Unassigned",
+    "Previous": "Previous",
+    "Next": "Next",
+    "Showing": "Showing",
+
+    // Statuses
+    "in_progress": "In progress",
+    "off_duty": "Off duty",
+    "on_job": "On job",
+    "scheduled": "Scheduled",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "available": "Available",
+    "draft": "Draft",
+    "sent": "Sent",
+    "paid": "Paid",
+    "overdue": "Overdue",
+    "urgent": "Urgent",
+    "normal": "Normal",
+    "low": "Low",
+    "awaiting_payment": "Awaiting Payment",
+    "pending": "Pending"
   },
   am: {
     // Navigation (Amharic Translations)
@@ -93,7 +131,45 @@ const translations = {
     "Directory Desc": "ወደ ፊልድ ፍሎው እንኳን በደህና መጡ! ከተመሰከረላቸው የኤሌክትሪክ፣ የውሃ እና አየር ማቀዝቀዣ ባለሙያዎች ጋር ለመገናኘት ትክክለኛው ቦታ።",
     "Meet Techs": "ምርጥ ባለሙያዎቻችንን ያግኙ",
     "Techs Desc": "ችግርዎን ለመፍታት ዝግጁ የሆኑትን ከፍተኛ ልምድ ያላቸውን እና በደንበኞች የተመሰገኑ ባለሙያዎችን ይመልከቱ።",
-    "Request Service": "አገልግሎት ይጠይቁ"
+    "Request Service": "አገልግሎት ይጠይቁ",
+
+    // Jobs Page
+    "Jobs Title": "ስራዎች",
+    "Jobs Desc": "እያንዳንዱን የአገልግሎት ጥሪ ይመድቡ፣ ያስተካክሉ እና ይከታተሉ።",
+    "Dispatch board": "የስምሪት ሰሌዳ",
+    "New job": "አዲስ ስራ",
+    "Search jobs": "ስራዎችን፣ አድራሻዎችን ወይም መለያዎችን ይፈልጉ",
+    "All statuses": "ሁሉም ሁኔታዎች",
+    "All services": "ሁሉም አገልግሎቶች",
+    "Job": "ስራ",
+    "Customer": "ደንበኛ",
+    "Service": "አገልግሎት",
+    "Schedule": "የጊዜ ሰሌዳ",
+    "Technician": "ባለሙያ",
+    "Status": "ሁኔታ",
+    "Priority": "ቅድሚያ",
+    "Unassigned": "ያልተመደበ",
+    "Previous": "ቀዳሚ",
+    "Next": "ቀጣይ",
+    "Showing": "እያሳየ ያለው",
+
+    // Statuses
+    "in_progress": "በሂደት ላይ",
+    "off_duty": "ከስራ ውጪ",
+    "on_job": "ስራ ላይ",
+    "scheduled": "ቀጠሮ የተያዘለት",
+    "completed": "ተጠናቋል",
+    "cancelled": "ተሰርዟል",
+    "available": "ዝግጁ",
+    "draft": "ረቂቅ",
+    "sent": "ተልኳል",
+    "paid": "ተከፍሏል",
+    "overdue": "ጊዜው ያለፈበት",
+    "urgent": "አስቸኳይ",
+    "normal": "መደበኛ",
+    "low": "ዝቅተኛ",
+    "awaiting_payment": "ክፍያ በመጠባበቅ ላይ",
+    "pending": "በመጠባበቅ ላይ"
   }
 };
 
