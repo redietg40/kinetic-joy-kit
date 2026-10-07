@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { Shield, Wrench, Clock, Star, ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 
 export const Route = createFileRoute('/directory')({
   component: DirectoryPage,
@@ -61,13 +62,29 @@ const technicians = [
 
 function DirectoryPage() {
   const [mounted, setMounted] = useState(false);
+  const { t, language, setLanguage } = useTranslation();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-500 selection:text-white relative">
+      {/* Language Switcher for Customer */}
+      <div className="absolute top-4 right-6 z-50 flex gap-2 bg-white/10 backdrop-blur-md p-1 rounded-lg border border-white/20 shadow-sm">
+        <button 
+          className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+          onClick={() => setLanguage('en')}
+        >
+          EN
+        </button>
+        <button 
+          className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${language === 'am' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+          onClick={() => setLanguage('am')}
+        >
+          አማ
+        </button>
+      </div>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes revealUp {
           from { opacity: 0; transform: translateY(40px); }
@@ -112,13 +129,13 @@ function DirectoryPage() {
         
         <div className="max-w-6xl mx-auto relative z-10 text-center">
           <h1 className={`text-6xl md:text-7xl font-extrabold mb-6 tracking-tight ${mounted ? 'reveal' : 'opacity-0'}`}>
-            Trusted Professionals,<br />
+            {t("Directory Title")}<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
-              At Your Service
+              {t("Directory Subtitle")}
             </span>
           </h1>
           <p className={`text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed ${mounted ? 'reveal delay-100' : 'opacity-0'}`}>
-            Welcome to FieldFlow, your premium hub for connecting with certified HVAC, Plumbing, and Electrical experts. We guarantee fast dispatch, transparent pricing, and quality workmanship for every job.
+            {t("Directory Desc")}
           </p>
           
           <div className={`flex flex-wrap justify-center gap-6 ${mounted ? 'reveal delay-200' : 'opacity-0'}`}>
@@ -139,8 +156,8 @@ function DirectoryPage() {
       {/* Technician Directory List */}
       <section className="py-24 px-6 max-w-6xl mx-auto relative">
         <div className={`mb-16 text-center ${mounted ? 'reveal delay-300' : 'opacity-0'}`}>
-          <h2 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Meet Our Top Technicians</h2>
-          <p className="text-lg text-slate-500 max-w-2xl mx-auto">Browse our roster of highly skilled and customer-approved service professionals ready to solve your problems.</p>
+          <h2 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">{t("Meet Techs")}</h2>
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto">{t("Techs Desc")}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 card-3d-wrapper">
@@ -182,7 +199,7 @@ function DirectoryPage() {
               </div>
               
               <button className="w-full bg-slate-900 hover:bg-blue-600 text-white font-semibold py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-slate-900/20 hover:shadow-blue-600/30 flex items-center justify-center gap-2 group/btn">
-                Request Service
+                {t("Request Service")}
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
               </button>
             </div>

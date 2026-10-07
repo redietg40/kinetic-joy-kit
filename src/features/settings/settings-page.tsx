@@ -5,37 +5,61 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSession } from "@/api/auth";
+import { useTranslation } from "@/lib/i18n";
 
 export function SettingsPage() {
   const user = getSession();
+  const { t, language, setLanguage } = useTranslation();
 
   return (
-    <AppShell title="Settings" description="Manage company and account preferences.">
+    <AppShell title={t("Settings Title")} description={t("Settings Desc")}>
       <div className="page-enter grid gap-6 xl:grid-cols-2">
+        {/* Language Settings */}
+        <form className="panel settings-form">
+          <div className="settings-heading">
+            <Building2 />
+            <div>
+              <h2>{t("Language Settings")}</h2>
+              <p>{t("Language Desc")}</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>{t("Select Language")}</Label>
+            <select 
+              className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-sm"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as "en" | "am")}
+            >
+              <option value="en">English (US)</option>
+              <option value="am">አማርኛ (Amharic)</option>
+            </select>
+          </div>
+        </form>
+
         {/* Company Settings */}
         <form className="panel settings-form" onSubmit={e => { e.preventDefault(); toast.success("Company settings saved"); }}>
           <div className="settings-heading">
             <Building2 />
             <div>
-              <h2>Company profile</h2>
-              <p>Used on invoices and customer communication.</p>
+              <h2>{t("Company profile")}</h2>
+              <p>{t("Company Desc")}</p>
             </div>
           </div>
-          <Label>Company name
+          <Label>{t("Company name")}
             <Input defaultValue="FieldFlow Services" />
           </Label>
           <div className="grid grid-cols-2 gap-4">
-            <Label>Tax rate (%)
+            <Label>{t("Tax rate")}
               <Input type="number" defaultValue="15" />
             </Label>
-            <Label>Invoice prefix
+            <Label>{t("Invoice prefix")}
               <Input defaultValue="INV" />
             </Label>
           </div>
-          <Label>Business address
+          <Label>{t("Business address")}
             <Input defaultValue="Bole Road, Addis Ababa" />
           </Label>
-          <Button><Save />Save company</Button>
+          <Button><Save />{t("Save company")}</Button>
         </form>
 
         {/* Profile Settings */}
@@ -43,20 +67,20 @@ export function SettingsPage() {
           <div className="settings-heading">
             <UserRound />
             <div>
-              <h2>Your profile</h2>
-              <p>Personal information for this workspace.</p>
+              <h2>{t("Your profile")}</h2>
+              <p>{t("Profile Desc")}</p>
             </div>
           </div>
-          <Label>Full name
+          <Label>{t("Full name")}
             <Input defaultValue={user?.name || "User"} />
           </Label>
-          <Label>Email
+          <Label>{t("Email")}
             <Input type="email" defaultValue={user?.email || "email@example.com"} />
           </Label>
-          <Label>Role
+          <Label>{t("Role")}
             <Input defaultValue={user?.role || "Owner"} disabled />
           </Label>
-          <Button><Save />Update profile</Button>
+          <Button><Save />{t("Update profile")}</Button>
         </form>
 
         {/* API Integrations */}

@@ -118,14 +118,18 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+import { I18nProvider } from "@/lib/i18n";
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-      <Toaster richColors position="top-right" />
+      <I18nProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+        <Toaster richColors position="top-right" />
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getSession, logout } from "@/api/auth";
 import { initials } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 
 export function AppShell({children,title,description,actions}:{children:ReactNode;title:string;description:string;actions?:ReactNode}){
   const navigate=useNavigate(); const location=useLocation(); const [collapsed,setCollapsed]=useState(false); const [mobile,setMobile]=useState(false); const [dark,setDark]=useState(true); const [ready,setReady]=useState(false); const [user,setUser]=useState(getSession());
+  const { t } = useTranslation();
   useEffect(()=>{
     const session=getSession(); 
     setUser(session); 
@@ -23,7 +25,18 @@ export function AppShell({children,title,description,actions}:{children:ReactNod
   if(!ready||!user) return <div className="brand-loader"><div className="loader-mark"><span/><span/><span/></div><p>Preparing your workspace</p></div>;
   const doLogout=async()=>{await logout(); void navigate({to:"/login",search:{expired:undefined}})};
   
-  let nav=[{to:"/",label:"Overview",icon:BarChart3},{to:"/jobs",label:"Jobs",icon:BriefcaseBusiness},{to:"/dispatch",label:"Dispatch",icon:CalendarDays},{to:"/customers",label:"Customers",icon:Users},{to:"/technicians",label:"Technicians",icon:Wrench},{to:"/invoices",label:"Invoices",icon:CircleDollarSign},{to:"/inventory",label:"Inventory",icon:Box},{to:"/reports",label:"Reports",icon:PieChart},{to:"/messages",label:"Messages",icon:MessageSquare},{to:"/settings",label:"Settings",icon:Settings}] as const;
+  let nav=[
+    {to:"/",label:t("Overview"),icon:BarChart3},
+    {to:"/jobs",label:t("Jobs"),icon:BriefcaseBusiness},
+    {to:"/dispatch",label:t("Dispatch"),icon:CalendarDays},
+    {to:"/customers",label:t("Customers"),icon:Users},
+    {to:"/technicians",label:t("Technicians"),icon:Wrench},
+    {to:"/invoices",label:t("Invoices"),icon:CircleDollarSign},
+    {to:"/inventory",label:t("Inventory"),icon:Box},
+    {to:"/reports",label:t("Reports"),icon:PieChart},
+    {to:"/messages",label:t("Messages"),icon:MessageSquare},
+    {to:"/settings",label:t("Settings"),icon:Settings}
+  ] as const;
   
   if (user.role === 'Technician') {
     // @ts-ignore - TS thinks nav is strictly the tuple above
