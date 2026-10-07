@@ -19,6 +19,7 @@ import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TechnicianRouteImport } from './routes/technician'
 import { Route as TechniciansRouteImport } from './routes/technicians'
 import { Route as JobsIndexRouteImport } from './routes/jobs.index'
 import { Route as JobsJobIdRouteImport } from './routes/jobs_.$jobId'
@@ -73,6 +74,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TechnicianRoute = TechnicianRouteImport.update({
+  id: '/technician',
+  path: '/technician',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TechniciansRoute = TechniciansRouteImport.update({
   id: '/technicians',
   path: '/technicians',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/technician': typeof TechnicianRoute
   '/technicians': typeof TechniciansRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/jobs/': typeof JobsIndexRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/technician': typeof TechnicianRoute
   '/technicians': typeof TechniciansRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/jobs': typeof JobsIndexRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
+  '/technician': typeof TechnicianRoute
   '/technicians': typeof TechniciansRoute
   '/jobs_/$jobId': typeof JobsJobIdRoute
   '/jobs/': typeof JobsIndexRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/login'
     | '/settings'
+    | '/technician'
     | '/technicians'
     | '/jobs/$jobId'
     | '/jobs/'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/login'
     | '/settings'
+    | '/technician'
     | '/technicians'
     | '/jobs/$jobId'
     | '/jobs'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/login'
     | '/settings'
+    | '/technician'
     | '/technicians'
     | '/jobs_/$jobId'
     | '/jobs/'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   InvoicesRoute: typeof InvoicesRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
+  TechnicianRoute: typeof TechnicianRoute
   TechniciansRoute: typeof TechniciansRoute
   JobsJobIdRoute: typeof JobsJobIdRoute
   JobsIndexRoute: typeof JobsIndexRoute
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/technician': {
+      id: '/technician'
+      path: '/technician'
+      fullPath: '/technician'
+      preLoaderRoute: typeof TechnicianRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/technicians': {
       id: '/technicians'
       path: '/technicians'
@@ -306,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   InvoicesRoute: InvoicesRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
+  TechnicianRoute: TechnicianRoute,
   TechniciansRoute: TechniciansRoute,
   JobsJobIdRoute: JobsJobIdRoute,
   JobsIndexRoute: JobsIndexRoute,
