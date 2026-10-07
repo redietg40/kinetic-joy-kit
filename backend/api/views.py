@@ -307,3 +307,10 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 return Response({"error": f"Could not find chat_id for @{username}. Have they started the bot?"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": f"Telegram API error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+from .models import ChatMessage
+from .serializers import ChatMessageSerializer
+
+class ChatMessageViewSet(viewsets.ModelViewSet):
+    queryset = ChatMessage.objects.all()
+    serializer_class = ChatMessageSerializer

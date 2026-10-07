@@ -82,3 +82,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
         fields = ('id', 'subtotal', 'tax', 'total', 'currency', 'status', 'payment_method', 'chapa_tx_ref', 'issued_at', 'paid_at', 'job_id', 'customer_id', 'line_items')
+
+from .models import ChatMessage
+class ChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatMessage
+        fields = '__all__'

@@ -18,6 +18,7 @@ import { Route as DirectoryRouteImport } from './routes/directory'
 import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TechnicianRouteImport } from './routes/technician'
 import { Route as TechniciansRouteImport } from './routes/technicians'
@@ -69,6 +70,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/dispatch': typeof DispatchRoute
   '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
+  '/messages': typeof MessagesRoute
   '/settings': typeof SettingsRoute
   '/technician': typeof TechnicianRoute
   '/technicians': typeof TechniciansRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/dispatch': typeof DispatchRoute
   '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
+  '/messages': typeof MessagesRoute
   '/settings': typeof SettingsRoute
   '/technician': typeof TechnicianRoute
   '/technicians': typeof TechniciansRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/dispatch': typeof DispatchRoute
   '/invoices': typeof InvoicesRoute
   '/login': typeof LoginRoute
+  '/messages': typeof MessagesRoute
   '/settings': typeof SettingsRoute
   '/technician': typeof TechnicianRoute
   '/technicians': typeof TechniciansRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/dispatch'
     | '/invoices'
     | '/login'
+    | '/messages'
     | '/settings'
     | '/technician'
     | '/technicians'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/dispatch'
     | '/invoices'
     | '/login'
+    | '/messages'
     | '/settings'
     | '/technician'
     | '/technicians'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/dispatch'
     | '/invoices'
     | '/login'
+    | '/messages'
     | '/settings'
     | '/technician'
     | '/technicians'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   DispatchRoute: typeof DispatchRoute
   InvoicesRoute: typeof InvoicesRoute
   LoginRoute: typeof LoginRoute
+  MessagesRoute: typeof MessagesRoute
   SettingsRoute: typeof SettingsRoute
   TechnicianRoute: typeof TechnicianRoute
   TechniciansRoute: typeof TechniciansRoute
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -325,6 +345,7 @@ const rootRouteChildren: RootRouteChildren = {
   DispatchRoute: DispatchRoute,
   InvoicesRoute: InvoicesRoute,
   LoginRoute: LoginRoute,
+  MessagesRoute: MessagesRoute,
   SettingsRoute: SettingsRoute,
   TechnicianRoute: TechnicianRoute,
   TechniciansRoute: TechniciansRoute,

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { BarChart3, BriefcaseBusiness, CalendarDays, ChevronLeft, CircleDollarSign, LogOut, Menu, Moon, Settings, Sun, Users, Wrench, X } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, CalendarDays, ChevronLeft, CircleDollarSign, LogOut, Menu, Moon, Settings, Sun, Users, Wrench, X, MessageSquare } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -23,11 +23,11 @@ export function AppShell({children,title,description,actions}:{children:ReactNod
   if(!ready||!user) return <div className="brand-loader"><div className="loader-mark"><span/><span/><span/></div><p>Preparing your workspace</p></div>;
   const doLogout=async()=>{await logout(); void navigate({to:"/login",search:{expired:undefined}})};
   
-  let nav=[{to:"/",label:"Overview",icon:BarChart3},{to:"/jobs",label:"Jobs",icon:BriefcaseBusiness},{to:"/dispatch",label:"Dispatch",icon:CalendarDays},{to:"/customers",label:"Customers",icon:Users},{to:"/technicians",label:"Technicians",icon:Wrench},{to:"/invoices",label:"Invoices",icon:CircleDollarSign},{to:"/settings",label:"Settings",icon:Settings}] as const;
+  let nav=[{to:"/",label:"Overview",icon:BarChart3},{to:"/jobs",label:"Jobs",icon:BriefcaseBusiness},{to:"/dispatch",label:"Dispatch",icon:CalendarDays},{to:"/customers",label:"Customers",icon:Users},{to:"/technicians",label:"Technicians",icon:Wrench},{to:"/invoices",label:"Invoices",icon:CircleDollarSign},{to:"/messages",label:"Messages",icon:MessageSquare},{to:"/settings",label:"Settings",icon:Settings}] as const;
   
   if (user.role === 'Technician') {
     // @ts-ignore - TS thinks nav is strictly the tuple above
-    nav = [{to:"/jobs",label:"My Jobs",icon:BriefcaseBusiness}];
+    nav = [{to:"/jobs",label:"My Jobs",icon:BriefcaseBusiness},{to:"/messages",label:"Messages",icon:MessageSquare}];
   }
   
   return (

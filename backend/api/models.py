@@ -77,3 +77,16 @@ class TechnicianLedger(models.Model):
 
     def __str__(self):
         return f"{self.technician.name} Ledger - {self.current_balance} ETB"
+
+class ChatMessage(models.Model):
+    sender = models.CharField(max_length=50) # 'owner', or technician ID
+    receiver = models.CharField(max_length=50) # 'owner', or technician ID
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['timestamp']
+
+    def __str__(self):
+        return f"From {self.sender} to {self.receiver} at {self.timestamp}"
