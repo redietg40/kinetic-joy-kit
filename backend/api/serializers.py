@@ -52,6 +52,17 @@ class TechnicianSerializer(serializers.ModelSerializer):
     class Meta:
         model = Technician
         fields = '__all__'
+        
+    def create(self, validated_data):
+        from django.contrib.auth.models import User
+        email = validated_data.get('email')
+        if email and not User.objects.filter(username=email).exists():
+            User.objects.create_user(
+                username=email,
+                email=email,
+                password='password123'
+            )
+        return super().create(validated_data)
 
 class JobSerializer(serializers.ModelSerializer):
     customer_id = serializers.PrimaryKeyRelatedField(source='customer', queryset=Customer.objects.all())
