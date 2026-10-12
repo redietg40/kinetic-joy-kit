@@ -8,7 +8,7 @@ import { initials } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n";
 
 export function AppShell({children,title,description,actions}:{children:ReactNode;title:string;description:string;actions?:ReactNode}){
-  const navigate=useNavigate(); const location=useLocation(); const [collapsed,setCollapsed]=useState(false); const [mobile,setMobile]=useState(false); const [dark,setDark]=useState(true); const [ready,setReady]=useState(false); const [user,setUser]=useState(getSession());
+  const navigate=useNavigate(); const location=useLocation(); const [collapsed,setCollapsed]=useState(false); const [mobile,setMobile]=useState(false); const [dark,setDark]=useState(true); const [ready,setReady]=useState(false); const [user,setUser]=useState<any>(null);
   const { t, language, setLanguage } = useTranslation();
   useEffect(()=>{
     const session=getSession(); 
