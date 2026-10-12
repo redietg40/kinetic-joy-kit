@@ -1,4 +1,4 @@
-export const API_BASE_URL = import.meta.env["VITE_API_BASE_URL"] ?? "http://127.0.0.1:8000";
+export const API_BASE_URL = import.meta.env["VITE_API_BASE_URL"] || "https://redudev.pythonanywhere.com";
 
 export function getCsrfToken() {
   if (typeof document === "undefined") return "";
@@ -17,12 +17,20 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers,
-  });
-  if (!response.ok) throw new Error(`Request failed (${response.status})`);
-  return response.json() as Promise<T>;
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      headers,
+    });
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
+    return response.json() as Promise<T>;
+  } catch (error: any) {
+    if (typeof window === 'undefined') {
+      // In SSR mode, log a clear warning if Django backend is not reachable
+      console.warn(`[SSR] Django backend at ${API_BASE_URL} unreachable: ${error.message}`);
+    }
+    throw error;
+  }
 }
 
 export const delay = (ms = 550) => new Promise((resolve) => setTimeout(resolve, ms));
