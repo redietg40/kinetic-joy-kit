@@ -1,6 +1,6 @@
 from rest_framework import viewsets, generics, status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.models import User
 from .models import Customer, Technician, Job, Invoice
 from django.conf import settings
@@ -133,14 +133,50 @@ class ChapaWebhookView(APIView):
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Customer.objects.none()
+        if user.is_superuser:
+            return Customer.objects.all()
+        return Customer.objects.filter(owner=user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 class TechnicianViewSet(viewsets.ModelViewSet):
     queryset = Technician.objects.all()
     serializer_class = TechnicianSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Technician.objects.none()
+        if user.is_superuser:
+            return Technician.objects.all()
+        return Technician.objects.filter(owner=user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 class JobViewSet(viewsets.ModelViewSet):
     queryset = Job.objects.all()
     serializer_class = JobSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Job.objects.none()
+        if user.is_superuser:
+            return Job.objects.all()
+        return (Job.objects.filter(owner=user) | Job.objects.filter(technician__email=user.email)).distinct()
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
     def perform_update(self, serializer):
         old_status = serializer.instance.status
@@ -223,6 +259,18 @@ class JobViewSet(viewsets.ModelViewSet):
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Invoice.objects.none()
+        if user.is_superuser:
+            return Invoice.objects.all()
+        return Invoice.objects.filter(owner=user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
     @action(detail=True, methods=['post'])
     def send_telegram(self, request, pk=None):
@@ -314,14 +362,47 @@ from .serializers import ChatMessageSerializer, InventoryItemSerializer, JobPart
 class ChatMessageViewSet(viewsets.ModelViewSet):
     queryset = ChatMessage.objects.all()
     serializer_class = ChatMessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return ChatMessage.objects.none()
+        if user.is_superuser:
+            return ChatMessage.objects.all()
+        return ChatMessage.objects.filter(owner=user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 class InventoryItemViewSet(viewsets.ModelViewSet):
     queryset = InventoryItem.objects.all()
     serializer_class = InventoryItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return InventoryItem.objects.none()
+        if user.is_superuser:
+            return InventoryItem.objects.all()
+        return InventoryItem.objects.filter(owner=user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 class JobPartUsageViewSet(viewsets.ModelViewSet):
     queryset = JobPartUsage.objects.all()
     serializer_class = JobPartUsageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return JobPartUsage.objects.none()
+        if user.is_superuser:
+            return JobPartUsage.objects.all()
+        return JobPartUsage.objects.filter(job__owner=user)
 
     def perform_create(self, serializer):
         # deduct quantity from inventory

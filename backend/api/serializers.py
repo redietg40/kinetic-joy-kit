@@ -47,6 +47,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = '__all__'
+        read_only_fields = ['owner']
 
 class TechnicianSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
@@ -54,6 +55,7 @@ class TechnicianSerializer(serializers.ModelSerializer):
     class Meta:
         model = Technician
         fields = '__all__'
+        read_only_fields = ['owner']
         
     def create(self, validated_data):
         from django.contrib.auth.models import User
@@ -73,7 +75,8 @@ class JobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = ('id', 'title', 'service_type', 'status', 'scheduled_at', 'priority', 'technician_notes', 'description', 'address', 'completed_at', 'customer_id', 'technician_id', 'booking_fee_paid', 'booking_fee_amount', 'booking_chapa_tx_ref')
+        fields = ('id', 'title', 'service_type', 'status', 'scheduled_at', 'priority', 'technician_notes', 'description', 'address', 'completed_at', 'customer_id', 'technician_id', 'booking_fee_paid', 'booking_fee_amount', 'booking_chapa_tx_ref', 'owner')
+        read_only_fields = ['owner']
 
 class InvoiceSerializer(serializers.ModelSerializer):
     job_id = serializers.PrimaryKeyRelatedField(source='job', queryset=Job.objects.all())
@@ -81,18 +84,21 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Invoice
-        fields = ('id', 'subtotal', 'tax', 'total', 'currency', 'status', 'payment_method', 'chapa_tx_ref', 'issued_at', 'paid_at', 'job_id', 'customer_id', 'line_items')
+        fields = ('id', 'subtotal', 'tax', 'total', 'currency', 'status', 'payment_method', 'chapa_tx_ref', 'issued_at', 'paid_at', 'job_id', 'customer_id', 'line_items', 'owner')
+        read_only_fields = ['owner']
 
 from .models import ChatMessage, InventoryItem, JobPartUsage
 class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatMessage
         fields = '__all__'
+        read_only_fields = ['owner']
 
 class InventoryItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = InventoryItem
         fields = '__all__'
+        read_only_fields = ['owner']
 
 class JobPartUsageSerializer(serializers.ModelSerializer):
     item_details = InventoryItemSerializer(source='item', read_only=True)

@@ -1,6 +1,8 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Customer(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="customers", null=True, blank=True)
     id = models.CharField(max_length=50, primary_key=True)
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=50)
@@ -14,6 +16,7 @@ class Customer(models.Model):
         return self.name
 
 class Technician(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="technicians", null=True, blank=True)
     id = models.CharField(max_length=50, primary_key=True)
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=50)
@@ -25,6 +28,7 @@ class Technician(models.Model):
         return self.name
 
 class Job(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="jobs", null=True, blank=True)
     id = models.CharField(max_length=50, primary_key=True)
     title = models.CharField(max_length=255)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="jobs")
@@ -47,6 +51,7 @@ class Job(models.Model):
         return self.title
 
 class Invoice(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="invoices", null=True, blank=True)
     id = models.CharField(max_length=50, primary_key=True)
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="invoices")
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="invoices")
@@ -79,6 +84,7 @@ class TechnicianLedger(models.Model):
         return f"{self.technician.name} Ledger - {self.current_balance} ETB"
 
 class ChatMessage(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="messages", null=True, blank=True)
     sender = models.CharField(max_length=50) # 'owner', or technician ID
     receiver = models.CharField(max_length=50) # 'owner', or technician ID
     content = models.TextField()
@@ -92,6 +98,7 @@ class ChatMessage(models.Model):
         return f"From {self.sender} to {self.receiver} at {self.timestamp}"
 
 class InventoryItem(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="inventory", null=True, blank=True)
     id = models.CharField(max_length=50, primary_key=True)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
