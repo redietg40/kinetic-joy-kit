@@ -110,12 +110,25 @@ export function CustomersPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Telegram Username (Optional)</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Telegram Username (Optional)</Label>
+                  <a
+                    href="https://t.me/FieldFlowApp_bot"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    @FieldFlowApp_bot ↗
+                  </a>
+                </div>
                 <Input
                   value={formData.telegram_username}
                   onChange={e => setFormData({ ...formData, telegram_username: e.target.value })}
                   placeholder="@username"
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Used to automatically dispatch scheduled repair alerts and invoice receipts via Telegram bot.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label>Notes (Optional)</Label>

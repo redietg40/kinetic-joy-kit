@@ -221,8 +221,21 @@ export function CustomerPortal() {
                     <Input {...bookingForm.register("address", { required: true })} placeholder="e.g. Bole Atlas, Addis Ababa" required />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Telegram Username (Optional)</Label>
-                    <Input {...bookingForm.register("telegram_username")} placeholder="@username for job alerts" />
+                    <div className="flex items-center justify-between">
+                      <Label>Telegram Username (Optional)</Label>
+                      <a
+                        href="https://t.me/FieldFlowApp_bot"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Start Bot @FieldFlowApp_bot ↗
+                      </a>
+                    </div>
+                    <Input {...bookingForm.register("telegram_username")} placeholder="@username for repair alerts" />
+                    <p className="text-[11px] text-muted-foreground">
+                      Receive live repair updates & receipt alerts directly on Telegram.
+                    </p>
                   </div>
                   <div className="space-y-1.5">
                     <Label>Service Specialty</Label>

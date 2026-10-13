@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from .models import Customer, Technician, Job, Invoice
 from django.conf import settings
 from .serializers import CustomerSerializer, TechnicianSerializer, JobSerializer, InvoiceSerializer, UserSerializer
+from .telegram_utils import send_telegram_message, send_telegram_photo, resolve_chat_id
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -117,6 +118,28 @@ class BookServiceView(APIView):
             except Exception as mail_err:
                 print(f"Mail send error: {mail_err}")
 
+            # Send Telegram notification if telegram_username is provided
+            if customer.telegram_username:
+                try:
+                    live_url = "https://kinetic-joy-kit-iota.vercel.app"
+                    pay_btn_url = f"{live_url}/chapa-checkout?job_id={job.id}&amount=150"
+                    tg_msg = (
+                        f"🛠️ *FieldFlow Service Request Received*\n\n"
+                        f"Hi {customer.name}, we received your service request for:\n"
+                        f"*{job.title}* ({job.service_type})\n\n"
+                        f"📍 *Service Location:* {job.address}\n"
+                        f"💳 *Booking Deposit:* 150 ETB\n\n"
+                        f"Please tap below to pay the deposit via Chapa and confirm your booking!"
+                    )
+                    send_telegram_message(
+                        customer.telegram_username,
+                        tg_msg,
+                        button_text="💳 Pay Deposit (150 ETB)",
+                        button_url=pay_btn_url
+                    )
+                except Exception as tg_err:
+                    print(f"[Telegram Booking Notification Error]: {tg_err}")
+
             # Return relative checkout URL
             checkout_url = f"/chapa-checkout?job_id={job.id}&amount=150"
 
@@ -171,6 +194,19 @@ class ChapaWebhookView(APIView):
                     from django.utils import timezone
                     invoice.paid_at = timezone.now()
                     invoice.save()
+
+                    # Notify customer via Telegram if username is available
+                    if invoice.customer and invoice.customer.telegram_username:
+                        try:
+                            tg_msg = (
+                                f"🎉 *FieldFlow Payment Received!*\n\n"
+                                f"Hi {invoice.customer.name}, we have received your payment of {invoice.total} {invoice.currency} for Invoice #{invoice.id}.\n\n"
+                                f"Thank you for choosing FieldFlow Services!"
+                            )
+                            send_telegram_message(invoice.customer.telegram_username, tg_msg)
+                        except Exception as tg_err:
+                            print(f"[Telegram Invoice Paid Error]: {tg_err}")
+
                     return Response({"status": "Invoice payment verified."})
                 return Response({"status": "Invoice already paid."})
             except Invoice.DoesNotExist:
@@ -187,6 +223,19 @@ class ChapaWebhookView(APIView):
                 import uuid
                 job.booking_chapa_tx_ref = f"chapa_tx_{uuid.uuid4().hex[:8]}"
                 job.save()
+
+                # Notify customer via Telegram that booking fee was received
+                if job.customer and job.customer.telegram_username:
+                    try:
+                        tg_msg = (
+                            f"✅ *FieldFlow Booking Deposit Confirmed!*\n\n"
+                            f"Hi {job.customer.name}, your booking deposit of 150 ETB for *'{job.title}'* has been verified!\n\n"
+                            f"Your service request is confirmed and our team will assign a technician shortly."
+                        )
+                        send_telegram_message(job.customer.telegram_username, tg_msg)
+                    except Exception as tg_err:
+                        print(f"[Telegram Booking Fee Paid Error]: {tg_err}")
+
                 return Response({"status": "Payment verified, job is now pending."})
             return Response({"status": "Job already processed."})
         except Job.DoesNotExist:
@@ -281,42 +330,37 @@ class JobViewSet(viewsets.ModelViewSet):
                 fail_silently=True,
             )
             
-            # Real Telegram Integration
-            if job.customer.telegram_username:
-                username = job.customer.telegram_username.strip('@')
-                token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
-                if token:
-                    import urllib.request
-                    import json
-                    try:
-                        # 1. Fetch updates to find the user's chat_id
-                        req = urllib.request.Request(f"https://api.telegram.org/bot{token}/getUpdates")
-                        with urllib.request.urlopen(req) as response:
-                            updates = json.loads(response.read().decode())
-                        
-                        chat_id = None
-                        if updates.get('ok'):
-                            for update in updates.get('result', []):
-                                message_data = update.get('message', {})
-                                from_user = message_data.get('from', {})
-                                if from_user.get('username') == username:
-                                    chat_id = from_user.get('id')
-                                    break
-                        
-                        if chat_id:
-                            # 2. Send the message
-                            bot_msg = f"🔧 *FieldFlow Notification*\n\nYour repair '{job.title}' is scheduled for {date_str} with {tech_name}!"
-                            send_req = urllib.request.Request(
-                                f"https://api.telegram.org/bot{token}/sendMessage",
-                                data=json.dumps({"chat_id": chat_id, "text": bot_msg, "parse_mode": "Markdown"}).encode('utf-8'),
-                                headers={'Content-Type': 'application/json'}
-                            )
-                            with urllib.request.urlopen(send_req) as send_resp:
-                                print(f"Successfully sent real Telegram message to @{username}!")
-                        else:
-                            print(f"Could not find chat_id for @{username}. Did they start the bot?")
-                    except Exception as e:
-                        print(f"Telegram API error: {e}")
+            # Telegram Integration
+            if job.customer and job.customer.telegram_username:
+                try:
+                    bot_msg = (
+                        f"🔧 *FieldFlow Repair Scheduled*\n\n"
+                        f"Hi {job.customer.name}, your service request *'{job.title}'* has been officially scheduled!\n\n"
+                        f"📅 *Date & Time:* {date_str}\n"
+                        f"👷 *Technician:* {tech_name}\n"
+                        f"📍 *Location:* {job.address}\n\n"
+                        f"Thank you for choosing FieldFlow!"
+                    )
+                    send_telegram_message(job.customer.telegram_username, bot_msg)
+                except Exception as tg_err:
+                    print(f"[Telegram Job Scheduled Error]: {tg_err}")
+        elif old_status != job.status and job.customer and job.customer.telegram_username:
+            try:
+                status_label = {
+                    'in_progress': 'In Progress ⏳ (Technician is actively working on your repair)',
+                    'completed': 'Completed ✨ (Repair finished successfully!)',
+                    'cancelled': 'Cancelled ❌',
+                }.get(job.status, job.status.replace('_', ' ').capitalize())
+                
+                status_msg = (
+                    f"📋 *FieldFlow Status Update*\n\n"
+                    f"Hi {job.customer.name}, the status of your repair *'{job.title}'* is now:\n"
+                    f"*{status_label}*\n\n"
+                    f"Thank you for choosing FieldFlow!"
+                )
+                send_telegram_message(job.customer.telegram_username, status_msg)
+            except Exception as tg_err:
+                print(f"[Telegram Job Status Error]: {tg_err}")
 
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()
@@ -339,82 +383,49 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         invoice = self.get_object()
         customer = invoice.customer
         
-        if not customer.telegram_username:
-            return Response({"error": "Customer has no Telegram username"}, status=status.HTTP_400_BAD_REQUEST)
+        if not customer or not customer.telegram_username:
+            return Response({"error": "Customer has no Telegram username specified"}, status=status.HTTP_400_BAD_REQUEST)
             
-        username = customer.telegram_username.strip('@')
-        token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
+        app_url = "https://kinetic-joy-kit-iota.vercel.app"
+        checkout_url = f"{app_url}/chapa-checkout?invoice_id={invoice.id}&amount={invoice.total}"
         
-        if not token:
-            return Response({"error": "Telegram bot not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-        import urllib.request
-        import json
+        bot_msg = (
+            f"🧾 *FieldFlow Invoice #{invoice.id}*\n\n"
+            f"Hi {customer.name}, here is your receipt/invoice for your repair:\n"
+            f"• *Subtotal:* {invoice.subtotal} {invoice.currency}\n"
+            f"• *Tax:* {invoice.tax} {invoice.currency}\n"
+            f"• *Total Due:* {invoice.total} {invoice.currency}\n\n"
+            f"Status: *{invoice.status.upper()}*\n\n"
+            f"Thank you for choosing FieldFlow Services!"
+        )
         
         try:
-            req = urllib.request.Request(f"https://api.telegram.org/bot{token}/getUpdates")
-            with urllib.request.urlopen(req) as response:
-                updates = json.loads(response.read().decode())
+            image_data_b64 = request.data.get('image_data')
             
-            chat_id = None
-            if updates.get('ok'):
-                for update in updates.get('result', []):
-                    message_data = update.get('message', {})
-                    from_user = message_data.get('from', {})
-                    if from_user.get('username') == username:
-                        chat_id = from_user.get('id')
-                        break
-            
-            if chat_id:
-                bot_msg = f"🧾 *FieldFlow Invoice*\n\nHere is your receipt for your repair:\n*Invoice ID:* {invoice.id}\n*Subtotal:* {invoice.subtotal} ETB\n*Total Paid/Due:* {invoice.total} ETB\n\nThank you for choosing FieldFlow Services!"
+            if image_data_b64 and image_data_b64.startswith('data:image'):
+                header, b64_str = image_data_b64.split(',', 1)
+                import base64
+                image_bytes = base64.b64decode(b64_str)
                 
-                image_data_b64 = request.data.get('image_data')
-                
-                if image_data_b64 and image_data_b64.startswith('data:image'):
-                    # Extract the base64 string
-                    header, b64_str = image_data_b64.split(',', 1)
-                    import base64
-                    image_bytes = base64.b64decode(b64_str)
-                    
-                    # Create multipart form data request
-                    import mimetypes
-                    import uuid
-                    boundary = uuid.uuid4().hex
-                    
-                    body = bytearray()
-                    # Add chat_id
-                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n{chat_id}\r\n'.encode('utf-8'))
-                    # Add caption
-                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n{bot_msg}\r\n'.encode('utf-8'))
-                    # Add parse_mode
-                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="parse_mode"\r\n\r\nMarkdown\r\n'.encode('utf-8'))
-                    
-                    # Add inline keyboard button for Chapa checkout
-                    checkout_url = f"http://127.0.0.1.nip.io:8080/chapa-checkout?invoice_id={invoice.id}&amount={invoice.total}"
-                    reply_markup = json.dumps({"inline_keyboard": [[{"text": "💳 Pay via Chapa", "url": checkout_url}]]})
-                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="reply_markup"\r\n\r\n{reply_markup}\r\n'.encode('utf-8'))
-                    
-                    # Add photo
-                    body.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="photo"; filename="invoice.png"\r\nContent-Type: image/png\r\n\r\n'.encode('utf-8'))
-                    body.extend(image_bytes)
-                    body.extend(f'\r\n--{boundary}--\r\n'.encode('utf-8'))
-                    
-                    send_req = urllib.request.Request(
-                        f"https://api.telegram.org/bot{token}/sendPhoto",
-                        data=body,
-                        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'}
-                    )
-                else:
-                    send_req = urllib.request.Request(
-                        f"https://api.telegram.org/bot{token}/sendMessage",
-                        data=json.dumps({"chat_id": chat_id, "text": bot_msg, "parse_mode": "Markdown"}).encode('utf-8'),
-                        headers={'Content-Type': 'application/json'}
-                    )
-                
-                with urllib.request.urlopen(send_req) as send_resp:
-                    return Response({"status": "Sent successfully via Telegram!"})
+                result = send_telegram_photo(
+                    customer.telegram_username,
+                    image_bytes,
+                    caption=bot_msg,
+                    button_text="💳 Pay via Chapa",
+                    button_url=checkout_url
+                )
             else:
-                return Response({"error": f"Could not find chat_id for @{username}. Have they started the bot?"}, status=status.HTTP_400_BAD_REQUEST)
+                result = send_telegram_message(
+                    customer.telegram_username,
+                    bot_msg,
+                    button_text="💳 Pay via Chapa",
+                    button_url=checkout_url
+                )
+            
+            if result.get("success"):
+                return Response({"status": "Sent successfully via Telegram!"})
+            else:
+                return Response({"error": result.get("error", "Failed to send Telegram message")}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": f"Telegram API error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
