@@ -68,9 +68,21 @@ export function JobsPage() {
 
   const session = getSession();
   const isTech = isClient ? session?.role?.toLowerCase() === "technician" : false;
-  const { data: jobs } = useSuspenseQuery({ queryKey: ["jobs"], queryFn: listJobs });
-  const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
-  const { data: techs } = useSuspenseQuery({ queryKey: ["technicians"], queryFn: listTechnicians });
+  const { data: jobs } = useSuspenseQuery({
+    queryKey: ["jobs"],
+    queryFn: listJobs,
+    refetchInterval: 3000,
+  });
+  const { data: customers } = useSuspenseQuery({
+    queryKey: ["customers"],
+    queryFn: listCustomers,
+    refetchInterval: 3000,
+  });
+  const { data: techs } = useSuspenseQuery({
+    queryKey: ["technicians"],
+    queryFn: listTechnicians,
+    refetchInterval: 5000,
+  });
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");

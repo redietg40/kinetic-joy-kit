@@ -17,9 +17,21 @@ import type { Job } from "@/types";
 
 export function DispatchPage() {
   const qc = useQueryClient();
-  const { data: jobs } = useSuspenseQuery({ queryKey: ["jobs"], queryFn: listJobs });
-  const { data: techs } = useSuspenseQuery({ queryKey: ["technicians"], queryFn: listTechnicians });
-  const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
+  const { data: jobs } = useSuspenseQuery({
+    queryKey: ["jobs"],
+    queryFn: listJobs,
+    refetchInterval: 3000,
+  });
+  const { data: techs } = useSuspenseQuery({
+    queryKey: ["technicians"],
+    queryFn: listTechnicians,
+    refetchInterval: 5000,
+  });
+  const { data: customers } = useSuspenseQuery({
+    queryKey: ["customers"],
+    queryFn: listCustomers,
+    refetchInterval: 3000,
+  });
 
   const [offset, setOffset] = useState(0);
   const week = addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), offset * 7);

@@ -13,8 +13,16 @@ import { toast } from "sonner";
 
 export function CustomersPage() {
   const qc = useQueryClient();
-  const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
-  const { data: jobs } = useSuspenseQuery({ queryKey: ["jobs"], queryFn: listJobs });
+  const { data: customers } = useSuspenseQuery({
+    queryKey: ["customers"],
+    queryFn: listCustomers,
+    refetchInterval: 3000,
+  });
+  const { data: jobs } = useSuspenseQuery({
+    queryKey: ["jobs"],
+    queryFn: listJobs,
+    refetchInterval: 3000,
+  });
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({

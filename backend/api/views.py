@@ -88,16 +88,16 @@ class BookServiceView(APIView):
                     customer.owner = owner
                 customer.save()
 
-            # Create unassigned pending job
+            # Create unassigned pending job immediately visible to business owner
             job = Job.objects.create(
                 id=f"j_{uuid.uuid4().hex[:8]}",
                 title=data.get('title', 'Service Request'),
                 customer=customer,
                 service_type=data.get('service_type', 'General'),
-                status='awaiting_payment',
+                status='pending',
                 booking_fee_amount=150.00,
                 booking_fee_paid=False,
-                priority='medium',
+                priority='normal',
                 description=data.get('description', ''),
                 address=data.get('address', customer.address),
                 owner=owner
@@ -223,8 +223,7 @@ class ChapaWebhookView(APIView):
             
         try:
             job = Job.objects.get(id=job_id)
-            if job.status == 'awaiting_payment':
-                job.status = 'pending'
+            if not job.booking_fee_paid:
                 job.booking_fee_paid = True
                 import uuid
                 job.booking_chapa_tx_ref = f"chapa_tx_{uuid.uuid4().hex[:8]}"
@@ -242,7 +241,7 @@ class ChapaWebhookView(APIView):
                     except Exception as tg_err:
                         print(f"[Telegram Booking Fee Paid Error]: {tg_err}")
 
-                return Response({"status": "Payment verified, job is now pending."})
+                return Response({"status": "Payment verified, booking deposit confirmed."})
             return Response({"status": "Job already processed."})
         except Job.DoesNotExist:
             return Response({"error": "Job not found"}, status=404)
