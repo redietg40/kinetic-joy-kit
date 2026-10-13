@@ -158,18 +158,24 @@ class CustomerPortalLookupView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
-        if not email:
-            return Response({"error": "Email is required"}, status=400)
+        query = request.data.get('email', '').strip()
+        if not query:
+            return Response({"error": "Email or phone number is required"}, status=400)
         
-        customer = Customer.objects.filter(email__iexact=email).first()
+        # Search by email (case-insensitive), phone, or name
+        customer = Customer.objects.filter(email__iexact=query).first()
         if not customer:
-            return Response({"found": False, "message": "No customer found with that email address."}, status=404)
+            customer = Customer.objects.filter(phone__iexact=query).first()
+        if not customer:
+            customer = Customer.objects.filter(name__iexact=query).first()
+
+        if not customer:
+            return Response({"found": False, "message": "No customer found with that email or phone number."}, status=404)
         
         serializer = CustomerSerializer(customer)
-        jobs = Job.objects.filter(customer=customer).order_by('-scheduled_at')
+        jobs = Job.objects.filter(customer=customer).order_by('-id')
         job_serializer = JobSerializer(jobs, many=True)
-        invoices = Invoice.objects.filter(customer=customer).order_by('-issued_at')
+        invoices = Invoice.objects.filter(customer=customer).order_by('-id')
         invoice_serializer = InvoiceSerializer(invoices, many=True)
         
         return Response({
@@ -250,9 +256,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Customer.objects.none()
-        if user.is_superuser:
-            return Customer.objects.all()
-        return Customer.objects.filter(owner=user)
+        return Customer.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -266,9 +270,7 @@ class TechnicianViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Technician.objects.none()
-        if user.is_superuser:
-            return Technician.objects.all()
-        return Technician.objects.filter(owner=user)
+        return Technician.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -282,9 +284,7 @@ class JobViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Job.objects.none()
-        if user.is_superuser:
-            return Job.objects.all()
-        return (Job.objects.filter(owner=user) | Job.objects.filter(technician__email=user.email)).distinct()
+        return Job.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -371,9 +371,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Invoice.objects.none()
-        if user.is_superuser:
-            return Invoice.objects.all()
-        return Invoice.objects.filter(owner=user)
+        return Invoice.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -441,9 +439,7 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return ChatMessage.objects.none()
-        if user.is_superuser:
-            return ChatMessage.objects.all()
-        return ChatMessage.objects.filter(owner=user)
+        return ChatMessage.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -457,9 +453,7 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return InventoryItem.objects.none()
-        if user.is_superuser:
-            return InventoryItem.objects.all()
-        return InventoryItem.objects.filter(owner=user)
+        return InventoryItem.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -473,9 +467,7 @@ class JobPartUsageViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return JobPartUsage.objects.none()
-        if user.is_superuser:
-            return JobPartUsage.objects.all()
-        return JobPartUsage.objects.filter(job__owner=user)
+        return JobPartUsage.objects.all()
 
     def perform_create(self, serializer):
         # deduct quantity from inventory
