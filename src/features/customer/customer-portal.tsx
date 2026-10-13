@@ -94,7 +94,8 @@ export function CustomerPortal() {
       const resData = await res.json();
       if (resData.checkout_url) {
         toast.success("Request received! Redirecting to Chapa checkout...");
-        window.location.href = resData.checkout_url;
+        const cleanUrl = resData.checkout_url.replace(/^https?:\/\/localhost(:\d+)?/, "");
+        window.location.href = cleanUrl;
       } else {
         toast.success("Service request submitted successfully!");
         setBookingOpen(false);
