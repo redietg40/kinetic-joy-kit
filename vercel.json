@@ -1,10 +1,5 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": ".output/public",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "framework": null,
+  "installCommand": "npm install --legacy-peer-deps"
 }

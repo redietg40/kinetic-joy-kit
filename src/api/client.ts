@@ -18,10 +18,14 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   }
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       headers,
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!response.ok) throw new Error(`Request failed (${response.status})`);
     return response.json() as Promise<T>;
   } catch (error: any) {

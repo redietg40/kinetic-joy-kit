@@ -36,3 +36,6 @@ venv/
 __pycache__/
 *.pyc
 db.sqlite3
+
+# Vercel build output
+.vercel/output/

@@ -12,9 +12,16 @@ export default defineConfig({
       allowedHosts: ["127.0.0.1.nip.io"]
     }
   },
+  // Pin the Nitro preset to "vercel" so the SSR server is built as Vercel
+  // serverless functions instead of Cloudflare Workers. This fixes the blank
+  // page / React #418 hydration error on Vercel deployments.
+  nitro: {
+    preset: "vercel",
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
   },
 });
+

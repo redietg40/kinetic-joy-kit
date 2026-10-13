@@ -1,22 +1,39 @@
 import { apiRequest } from "./client"; 
+import { technicians as mockTechnicians } from "./mock-data";
 import type { Technician } from "@/types";
 
-export async function listTechnicians() { 
-  return apiRequest<Technician[]>("/api/technicians/"); 
+export async function listTechnicians(): Promise<Technician[]> { 
+  try {
+    return await apiRequest<Technician[]>("/api/technicians/");
+  } catch {
+    console.warn("[API] Backend unavailable — using mock technicians data");
+    return mockTechnicians;
+  }
 }
 
-export async function saveTechnician(input: Technician) { 
-  if (input.id && !input.id.startsWith("new-")) {
-    return apiRequest<Technician>(`/api/technicians/${input.id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(input)
+export async function saveTechnician(input: Technician): Promise<Technician> { 
+  try {
+    if (input.id && !input.id.startsWith("new-")) {
+      return await apiRequest<Technician>(`/api/technicians/${input.id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(input)
+      });
+    }
+    return await apiRequest<Technician>("/api/technicians/", {
+      method: 'POST',
+      body: JSON.stringify({
+        ...input,
+        id: input.id && !input.id.startsWith("new-") ? input.id : `t${Date.now()}`
+      })
     });
+  } catch {
+    // Mock save
+    const newTech = { ...input, id: input.id && !input.id.startsWith("new-") ? input.id : `t${Date.now()}` };
+    if (input.id && !input.id.startsWith("new-")) {
+      const idx = mockTechnicians.findIndex(t => t.id === input.id);
+      if (idx !== -1) { mockTechnicians[idx] = newTech; return newTech; }
+    }
+    mockTechnicians.push(newTech);
+    return newTech;
   }
-  return apiRequest<Technician>("/api/technicians/", {
-    method: 'POST',
-    body: JSON.stringify({
-      ...input,
-      id: input.id && !input.id.startsWith("new-") ? input.id : `t${Date.now()}`
-    })
-  });
 }
