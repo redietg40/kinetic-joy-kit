@@ -1,16 +1,35 @@
+import { useState } from "react";
 import { Building2, Save, UserRound, Bell, KeySquare, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getSession } from "@/api/auth";
+import { getSession, updateProfile } from "@/api/auth";
+import { formatDisplayName } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n";
 
 export function SettingsPage() {
   const user = getSession();
   const { t, language, setLanguage } = useTranslation();
   const isTechnician = user?.role === 'Technician';
+  const [fullName, setFullName] = useState(formatDisplayName(user?.name));
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim()) return;
+    setSavingProfile(true);
+    try {
+      await updateProfile(fullName.trim());
+      toast.success("Profile updated! Refreshing to apply changes...");
+      setTimeout(() => window.location.reload(), 1000);
+    } catch {
+      toast.error("Could not save profile name.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   return (
     <AppShell title={t("Settings Title")} description={t("Settings Desc")}>
@@ -38,7 +57,7 @@ export function SettingsPage() {
         </form>
 
         {/* Profile Settings */}
-        <form className="panel settings-form" onSubmit={e => { e.preventDefault(); toast.success("Profile updated"); }}>
+        <form className="panel settings-form" onSubmit={handleUpdateProfile}>
           <div className="settings-heading">
             <UserRound />
             <div>
@@ -47,15 +66,15 @@ export function SettingsPage() {
             </div>
           </div>
           <Label>{t("Full name")}
-            <Input defaultValue={user?.name || "User"} />
+            <Input value={fullName} onChange={e => setFullName(e.target.value)} required />
           </Label>
           <Label>{t("Email")}
-            <Input type="email" defaultValue={user?.email || "email@example.com"} />
+            <Input type="email" defaultValue={user?.email || "email@example.com"} disabled />
           </Label>
           <Label>{t("Role")}
             <Input defaultValue={user?.role || "Owner"} disabled />
           </Label>
-          <Button><Save />{t("Update profile")}</Button>
+          <Button disabled={savingProfile}><Save />{savingProfile ? "Saving..." : t("Update profile")}</Button>
         </form>
 
         {!isTechnician && (

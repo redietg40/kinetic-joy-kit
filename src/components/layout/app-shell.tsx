@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getSession, logout } from "@/api/auth";
-import { initials } from "@/lib/format";
+import { initials, formatDisplayName } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n";
 
 export function AppShell({children,title,description,actions}:{children:ReactNode;title:string;description:string;actions?:ReactNode}){
@@ -81,7 +81,7 @@ export function AppShell({children,title,description,actions}:{children:ReactNod
           <div className="border-t border-sidebar-border p-3">
             <div className="user-chip">
               <span className="avatar">{initials(user.name)}</span>
-              {!collapsed&&<span className="min-w-0 flex-1"><strong className="block truncate text-sm">{user.name}</strong><small className="text-sidebar-foreground/60">{user.role}</small></span>}
+              {!collapsed&&<span className="min-w-0 flex-1"><strong className="block truncate text-sm">{formatDisplayName(user.name)}</strong><small className="text-sidebar-foreground/60">{user.role}</small></span>}
               <Button variant="ghost" size="icon" onClick={doLogout} aria-label="Log out"><LogOut/></Button>
             </div>
           </div>

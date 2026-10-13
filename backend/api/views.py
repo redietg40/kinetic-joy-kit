@@ -28,7 +28,16 @@ class MeView(APIView):
             role = "Customer"
             name = Customer.objects.get(email=user.email).name
         else:
-            name = user.username
+            if user.first_name and user.first_name.strip():
+                name = user.first_name.strip()
+            elif user.last_name and user.last_name.strip():
+                name = f"{user.first_name} {user.last_name}".strip()
+            else:
+                # Format friendly display name from email prefix, e.g. 'getahunredu149' -> 'Getahun Redu'
+                clean = user.username.split('@')[0]
+                import re
+                parts = re.findall(r'[a-zA-Z]+', clean)
+                name = ' '.join(p.capitalize() for p in parts) if parts else clean
 
         return Response({
             "id": user.id,
@@ -36,6 +45,14 @@ class MeView(APIView):
             "name": name,
             "role": role
         })
+
+    def patch(self, request):
+        user = request.user
+        new_name = request.data.get('name')
+        if new_name and new_name.strip():
+            user.first_name = new_name.strip()
+            user.save()
+        return self.get(request)
 
 class BookServiceView(APIView):
     permission_classes = [AllowAny]

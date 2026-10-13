@@ -48,3 +48,21 @@ export function getSession(): SessionUser|null {
   const value=localStorage.getItem(KEY); 
   try { return value ? JSON.parse(value) as SessionUser : null; } catch { return null; } 
 }
+
+export async function updateProfile(name: string): Promise<SessionUser> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+  const res = await fetch(`${API_BASE_URL}/api/auth/me/`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ name })
+  });
+  if (!res.ok) throw new Error("Unable to update profile.");
+  const meData = await res.json();
+  const user: SessionUser = { id: meData.id.toString(), name: meData.name, email: meData.email, role: meData.role };
+  localStorage.setItem(KEY, JSON.stringify(user));
+  return user;
+}
+

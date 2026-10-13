@@ -8,7 +8,7 @@ import { listTechnicians } from "@/api/technicians";
 import { getSession } from "@/api/auth";
 import { AppShell } from "@/components/layout/app-shell"; 
 import { StatusBadge } from "@/components/shared/status-badge"; 
-import { friendlyDate,money } from "@/lib/format";
+import { friendlyDate, money, formatDisplayName } from "@/lib/format";
 import { motion } from "framer-motion";
 
 const containerVariants = {
@@ -55,7 +55,7 @@ export function DashboardPage() {
   const totalRevenue = revenue.reduce((sum, r) => sum + r.v, 0);
   
   return (
-    <AppShell title={`Good morning, ${user?.name || 'User'}`} description="Here’s what’s happening across your field operations today.">
+    <AppShell title={`Good morning, ${formatDisplayName(user?.name)}`} description="Here’s what’s happening across your field operations today.">
       <motion.div 
         className="space-y-6"
         variants={containerVariants}
