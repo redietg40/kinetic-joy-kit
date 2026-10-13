@@ -91,6 +91,16 @@ export function CustomerPortal() {
         })
       });
 
+      if (!res.ok) {
+        let errorMsg = "Could not submit booking request.";
+        try {
+          const errData = await res.json();
+          errorMsg = errData.error || errorMsg;
+        } catch {}
+        toast.error(errorMsg);
+        return;
+      }
+
       const resData = await res.json();
       if (resData.checkout_url) {
         toast.success("Request received! Redirecting to Chapa checkout...");

@@ -58,63 +58,78 @@ class BookServiceView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        data = request.data
-        # Create or update customer
-        customer, created = Customer.objects.get_or_create(
-            email=data.get('email'),
-            defaults={
-                'id': f"c_{data.get('email')}",
-                'name': data.get('name', 'Unknown'),
-                'phone': data.get('phone', ''),
-                'address': data.get('address', ''),
-                'telegram_username': data.get('telegram_username', '')
-            }
-        )
-        if not created and data.get('telegram_username'):
-            customer.telegram_username = data.get('telegram_username')
-            customer.save()
-        # Assign owner
-        owner = User.objects.filter(is_superuser=True).first() or User.objects.first()
-        customer.owner = owner
-        customer.save()
-        
-        # Create unassigned pending job
-        import uuid
-        job = Job.objects.create(
-            id=f"j_{uuid.uuid4().hex[:8]}",
-            title=data.get('title', 'Service Request'),
-            customer=customer,
-            service_type=data.get('service_type', 'General'),
-            status='awaiting_payment',
-            booking_fee_amount=150.00,
-            booking_fee_paid=False,
-            priority='medium',
-            description=data.get('description', ''),
-            address=data.get('address', ''),
-            owner=owner
-        )
-        
-        # Send confirmation email
-        from django.core.mail import send_mail
-        from django.conf import settings
-        
-        send_mail(
-            "Service Request Received - FieldFlow",
-            f"Hi {customer.name},\n\nWe have received your service request for '{job.title}'.\nWe are reviewing it and a technician will schedule your repair shortly!\n\nThanks,\nFieldFlow Team",
-            settings.DEFAULT_FROM_EMAIL,
-            [customer.email],
-            fail_silently=True,
-        )
-        
-        # Simulate Chapa Initialize API Response
-        checkout_url = f"/chapa-checkout?job_id={job.id}&amount=150"
-        
-        return Response({
-            "status": "success", 
-            "job_id": job.id,
-            "checkout_url": checkout_url,
-            "message": "Please complete the booking deposit to confirm your request."
-        })
+        try:
+            data = request.data
+            email = (data.get('email') or '').strip().lower()
+            if not email:
+                return Response({"error": "Email is required."}, status=400)
+
+            # Assign to business owner
+            owner = User.objects.filter(is_superuser=True).first() or User.objects.first()
+
+            # Find existing customer or create new
+            import uuid
+            customer = Customer.objects.filter(email__iexact=email).first()
+            if not customer:
+                customer = Customer.objects.create(
+                    id=f"c_{uuid.uuid4().hex[:8]}",
+                    name=data.get('name', 'Client'),
+                    phone=data.get('phone', ''),
+                    email=email,
+                    address=data.get('address', 'Addis Ababa'),
+                    telegram_username=data.get('telegram_username', ''),
+                    owner=owner
+                )
+            else:
+                if data.get('telegram_username'):
+                    customer.telegram_username = data.get('telegram_username')
+                if not customer.owner and owner:
+                    customer.owner = owner
+                customer.save()
+
+            # Create unassigned pending job
+            job = Job.objects.create(
+                id=f"j_{uuid.uuid4().hex[:8]}",
+                title=data.get('title', 'Service Request'),
+                customer=customer,
+                service_type=data.get('service_type', 'General'),
+                status='awaiting_payment',
+                booking_fee_amount=150.00,
+                booking_fee_paid=False,
+                priority='medium',
+                description=data.get('description', ''),
+                address=data.get('address', customer.address),
+                owner=owner
+            )
+
+            # Send confirmation email
+            from django.core.mail import send_mail
+            from django.conf import settings
+
+            try:
+                send_mail(
+                    "Service Request Received - FieldFlow",
+                    f"Hi {customer.name},\n\nWe have received your service request for '{job.title}'.\nWe are reviewing it and a technician will schedule your repair shortly!\n\nThanks,\nFieldFlow Team",
+                    settings.DEFAULT_FROM_EMAIL,
+                    [customer.email],
+                    fail_silently=True,
+                )
+            except Exception as mail_err:
+                print(f"Mail send error: {mail_err}")
+
+            # Return relative checkout URL
+            checkout_url = f"/chapa-checkout?job_id={job.id}&amount=150"
+
+            return Response({
+                "status": "success",
+                "job_id": job.id,
+                "checkout_url": checkout_url,
+                "message": "Please complete the booking deposit to confirm your request."
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({"error": f"Booking failed: {str(e)}"}, status=400)
 
 class CustomerPortalLookupView(APIView):
     permission_classes = [AllowAny]
