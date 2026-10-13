@@ -1,6 +1,6 @@
-export type Specialty = "HVAC" | "Plumbing" | "Electrical";
+export type Specialty = "HVAC" | "Plumbing" | "Electrical" | "General";
 export type TechnicianStatus = "available" | "on_job" | "off_duty";
-export type JobStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
+export type JobStatus = "pending" | "awaiting_payment" | "scheduled" | "in_progress" | "completed" | "cancelled";
 export type JobPriority = "low" | "normal" | "urgent";
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
 

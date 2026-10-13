@@ -1,6 +1,17 @@
 export const money = (value:number) => `ETB ${new Intl.NumberFormat("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}).format(value)}`;
 
-export const friendlyDate = (value:string) => new Intl.DateTimeFormat("en-ET",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).format(new Date(value));
+export const friendlyDate = (value?: string | null) => {
+  if (!value) return "Pending Schedule";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "Pending Schedule";
+  return new Intl.DateTimeFormat("en-ET", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(d);
+};
 
 export const formatDisplayName = (name?: string): string => {
   if (!name) return "Owner";
