@@ -73,6 +73,11 @@ class BookServiceView(APIView):
         if not created and data.get('telegram_username'):
             customer.telegram_username = data.get('telegram_username')
             customer.save()
+        # Assign owner
+        owner = User.objects.filter(is_superuser=True).first() or User.objects.first()
+        customer.owner = owner
+        customer.save()
+        
         # Create unassigned pending job
         import uuid
         job = Job.objects.create(
@@ -85,7 +90,8 @@ class BookServiceView(APIView):
             booking_fee_paid=False,
             priority='medium',
             description=data.get('description', ''),
-            address=data.get('address', '')
+            address=data.get('address', ''),
+            owner=owner
         )
         
         # Send confirmation email
@@ -100,15 +106,39 @@ class BookServiceView(APIView):
             fail_silently=True,
         )
         
-        
         # Simulate Chapa Initialize API Response
-        checkout_url = f"http://localhost:8080/chapa-checkout?job_id={job.id}&amount=150"
+        checkout_url = f"/chapa-checkout?job_id={job.id}&amount=150"
         
         return Response({
             "status": "success", 
             "job_id": job.id,
             "checkout_url": checkout_url,
             "message": "Please complete the booking deposit to confirm your request."
+        })
+
+class CustomerPortalLookupView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        if not email:
+            return Response({"error": "Email is required"}, status=400)
+        
+        customer = Customer.objects.filter(email__iexact=email).first()
+        if not customer:
+            return Response({"found": False, "message": "No customer found with that email address."}, status=404)
+        
+        serializer = CustomerSerializer(customer)
+        jobs = Job.objects.filter(customer=customer).order_by('-scheduled_at')
+        job_serializer = JobSerializer(jobs, many=True)
+        invoices = Invoice.objects.filter(customer=customer).order_by('-issued_at')
+        invoice_serializer = InvoiceSerializer(invoices, many=True)
+        
+        return Response({
+            "found": True,
+            "customer": serializer.data,
+            "jobs": job_serializer.data,
+            "invoices": invoice_serializer.data
         })
 
 class ChapaWebhookView(APIView):

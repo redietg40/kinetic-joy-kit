@@ -1,7 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import CustomerViewSet, TechnicianViewSet, JobViewSet, InvoiceViewSet, RegisterView, MeView, BookServiceView, ChapaWebhookView, ChatMessageViewSet, InventoryItemViewSet, JobPartUsageViewSet
+from .views import (
+    CustomerViewSet, TechnicianViewSet, JobViewSet, InvoiceViewSet,
+    RegisterView, MeView, BookServiceView, ChapaWebhookView,
+    ChatMessageViewSet, InventoryItemViewSet, JobPartUsageViewSet,
+    CustomerPortalLookupView
+)
 
 router = DefaultRouter()
 router.register(r'customers', CustomerViewSet)
@@ -18,6 +23,7 @@ urlpatterns = [
     path('auth/refresh/', TokenRefreshView.as_view(), name='auth_refresh'),
     path('auth/me/', MeView.as_view(), name='auth_me'),
     path('book/', BookServiceView.as_view(), name='public_book'),
+    path('customer-portal/lookup/', CustomerPortalLookupView.as_view(), name='customer_portal_lookup'),
     path('webhooks/chapa/', ChapaWebhookView.as_view(), name='chapa_webhook'),
     path('', include(router.urls)),
 ]

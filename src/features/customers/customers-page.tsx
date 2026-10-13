@@ -1,2 +1,200 @@
-import { useState } from "react"; import { useSuspenseQuery } from "@tanstack/react-query"; import { BriefcaseBusiness,Mail,MapPin,Phone,Plus,Search } from "lucide-react"; import { listCustomers } from "@/api/customers"; import { listJobs } from "@/api/jobs"; import { AppShell } from "@/components/layout/app-shell"; import { Button } from "@/components/ui/button"; import { Input } from "@/components/ui/input"; import { toast } from "sonner";
-export function CustomersPage(){const {data:customers}=useSuspenseQuery({queryKey:["customers"],queryFn:listCustomers});const {data:jobs}=useSuspenseQuery({queryKey:["jobs"],queryFn:listJobs});const [search,setSearch]=useState("");const filtered=customers.filter(c=>`${c.name} ${c.email} ${c.phone}`.toLowerCase().includes(search.toLowerCase()));return <AppShell title="Customers" description="Manage customer details and service history." actions={<Button onClick={()=>toast.info("Customer form is ready for your Django endpoint")}><Plus/>Add customer</Button>}><div className="page-enter space-y-5"><div className="search-box max-w-md"><Search/><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search customers"/></div><div className="card-grid">{filtered.map(c=><article className="customer-card" key={c.id}><div className="contact-card"><span className="avatar avatar-lg">{c.name.slice(0,2).toUpperCase()}</span><div><strong>{c.name}</strong><p>Customer since {new Date(c.created_at).getFullYear()}</p></div></div><div className="info-list"><p><Phone/>{c.phone}</p><p><Mail/>{c.email}</p><p><MapPin/>{c.address}</p></div><div className="card-footer"><span><BriefcaseBusiness/> {jobs.filter(j=>j.customer_id===c.id).length} jobs</span><Button variant="ghost" size="sm" onClick={()=>toast.info(c.notes||"No customer notes")}>View details</Button></div></article>)}</div></div></AppShell>}
+import { useState } from "react";
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { BriefcaseBusiness, Mail, MapPin, Phone, Plus, Search, Send, User } from "lucide-react";
+import { listCustomers, saveCustomer } from "@/api/customers";
+import { listJobs } from "@/api/jobs";
+import { AppShell } from "@/components/layout/app-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "sonner";
+
+export function CustomersPage() {
+  const qc = useQueryClient();
+  const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
+  const { data: jobs } = useSuspenseQuery({ queryKey: ["jobs"], queryFn: listJobs });
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    telegram_username: "",
+    notes: ""
+  });
+
+  const mutation = useMutation({
+    mutationFn: saveCustomer,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["customers"] });
+      setOpen(false);
+      toast.success("Customer added successfully!");
+      setFormData({ name: "", email: "", phone: "", address: "", telegram_username: "", notes: "" });
+    },
+    onError: () => {
+      toast.error("Failed to add customer. Please check the details.");
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim()) {
+      return toast.error("Full name and Email are required.");
+    }
+    mutation.mutate({
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      address: formData.address.trim(),
+      telegram_username: formData.telegram_username.trim(),
+      notes: formData.notes.trim()
+    });
+  };
+
+  const filtered = customers.filter(c =>
+    `${c.name} ${c.email} ${c.phone} ${c.address}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <AppShell
+      title="Customers"
+      description="Manage customer accounts, addresses, and service histories."
+      actions={
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Add customer
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Customer</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4 pt-3">
+              <div className="space-y-1.5">
+                <Label>Full Name *</Label>
+                <Input
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g. Abebe Bikila"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email Address *</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="client@example.com"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Phone Number</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+251 911 000 000"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Service Address</Label>
+                <Input
+                  value={formData.address}
+                  onChange={e => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="e.g. Bole, Addis Ababa"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Telegram Username (Optional)</Label>
+                <Input
+                  value={formData.telegram_username}
+                  onChange={e => setFormData({ ...formData, telegram_username: e.target.value })}
+                  placeholder="@username"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Notes (Optional)</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Gate code, preferred hours, etc."
+                  rows={2}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={mutation.isPending}>
+                {mutation.isPending ? "Saving..." : "Save Customer"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      }
+    >
+      <div className="page-enter space-y-5">
+        <div className="search-box max-w-md">
+          <Search />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search customers by name, email, or phone..."
+          />
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="panel text-center py-12">
+            <User className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
+            <h3 className="text-lg font-semibold">No customers yet</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Add your first customer using the button above, or clients can self-register via the Customer Portal.
+            </p>
+          </div>
+        ) : (
+          <div className="card-grid">
+            {filtered.map(c => (
+              <article className="customer-card" key={c.id}>
+                <div className="contact-card">
+                  <span className="avatar avatar-lg">
+                    {c.name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div>
+                    <strong>{c.name}</strong>
+                    <p className="text-xs text-muted-foreground">
+                      {c.created_at ? `Customer since ${new Date(c.created_at).getFullYear()}` : "Active Client"}
+                    </p>
+                  </div>
+                </div>
+                <div className="info-list space-y-1 text-sm">
+                  {c.phone && <p><Phone className="w-4 h-4 inline mr-2" />{c.phone}</p>}
+                  <p><Mail className="w-4 h-4 inline mr-2" />{c.email}</p>
+                  {c.address && <p><MapPin className="w-4 h-4 inline mr-2" />{c.address}</p>}
+                  {c.telegram_username && (
+                    <p className="text-blue-500 font-medium">
+                      <Send className="w-4 h-4 inline mr-2" />{c.telegram_username}
+                    </p>
+                  )}
+                </div>
+                <div className="card-footer">
+                  <span>
+                    <BriefcaseBusiness className="w-4 h-4 inline mr-1" />
+                    {jobs.filter(j => j.customer_id === c.id).length} jobs
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toast.info(c.notes || "No notes recorded for this customer.")}
+                  >
+                    View notes
+                  </Button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </AppShell>
+  );
+}
