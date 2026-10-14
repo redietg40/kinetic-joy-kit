@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { friendlyDate, money } from "@/lib/format";
 import { motion } from "framer-motion";
-import { CheckCircle2, ChevronRight, MapPin, Receipt, Wrench, Plus, CalendarClock, User, ArrowRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, MapPin, Receipt, Wrench, Plus, CalendarClock, User, ArrowRight, ShieldCheck, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { API_BASE_URL } from "@/api/client";
@@ -13,8 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "sonner";
 
-export function CustomerPortal() {
+export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | "track" }) {
   const { t, language, setLanguage } = useTranslation();
+  const [activeTab, setActiveTab] = useState<"book" | "track">(initialTab);
   const [emailInput, setEmailInput] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -30,7 +31,9 @@ export function CustomerPortal() {
       name: "",
       email: "",
       phone: "",
+      national_id: "",
       address: "",
+      landmark: "",
       service_type: "HVAC",
       title: "",
       description: "",
@@ -83,7 +86,9 @@ export function CustomerPortal() {
           name: formData.name || customer?.name,
           email: formData.email || customer?.email,
           phone: formData.phone || customer?.phone || "",
+          national_id: formData.national_id || "",
           address: formData.address || customer?.address || "",
+          landmark: formData.landmark || "",
           telegram_username: formData.telegram_username || customer?.telegram_username || "",
           title: formData.title,
           description: formData.description || "",
@@ -157,72 +162,116 @@ export function CustomerPortal() {
         </motion.div>
 
         {!customer ? (
-          <motion.div
-            className="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-2xl border border-slate-100"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <form onSubmit={handleLookup} className="space-y-4">
-              <div>
-                <Label className="text-sm font-semibold text-slate-700">Enter your client email address</Label>
-                <Input
-                  type="email"
-                  required
-                  value={emailInput}
-                  onChange={e => setEmailInput(e.target.value)}
-                  placeholder="e.g. client@example.com"
-                  className="mt-2 h-12 text-base"
-                />
+          <div>
+            {/* Unified Switcher Tabs */}
+            <div className="flex justify-center mb-8">
+              <div className="bg-slate-800/90 p-1.5 rounded-2xl border border-slate-700/60 inline-flex gap-1.5 shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("book")}
+                  className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 ${
+                    activeTab === "book"
+                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/50"
+                      : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                  }`}
+                >
+                  <Wrench className="w-4 h-4" /> Book a Service
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("track")}
+                  className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 ${
+                    activeTab === "track"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
+                      : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                  }`}
+                >
+                  <CalendarClock className="w-4 h-4" /> Track My Repairs
+                </button>
               </div>
-              <Button type="submit" size="lg" className="w-full text-base" disabled={lookingUp}>
-                {lookingUp ? "Searching..." : "View My Portal"} <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            </form>
-
-            {errorMessage && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs leading-relaxed text-center">
-                {errorMessage}
-              </div>
-            )}
-
-            <div className="relative my-6 text-center">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
-              <span className="relative bg-white px-3 text-xs uppercase tracking-wider text-slate-400 font-semibold">or</span>
             </div>
 
-            {/* Direct Booking Modal for New or Existing Customers */}
-            <Dialog open={bookingOpen} onOpenChange={setBookingOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="lg" className="w-full border-primary/30 text-primary hover:bg-primary/5">
-                  <Plus className="w-4 h-4 mr-2" /> Request a New Service
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Request FieldFlow Service</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={bookingForm.handleSubmit(handleBookService)} className="space-y-4 pt-3">
-                  <div className="space-y-1.5">
-                    <Label>Your Full Name *</Label>
-                    <Input {...bookingForm.register("name", { required: true })} placeholder="e.g. Dawit Bekele" required />
+            {activeTab === "book" ? (
+              <motion.div
+                className="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-2xl border border-slate-100"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                {/* Security Guarantee Banner */}
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-4 text-xs flex items-start gap-3 mb-6">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-emerald-800 text-sm">Verified & Secure Booking (Digital Paper Trail)</p>
+                    <p className="text-emerald-700 mt-0.5 leading-relaxed">
+                      For homeowner and technician safety, all requests require a verified <strong>National ID / Fayda</strong> number and a bank-verified Chapa digital deposit.
+                    </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>Email Address *</Label>
-                      <Input type="email" {...bookingForm.register("email", { required: true })} placeholder="you@example.com" required />
+                </div>
+
+                <form onSubmit={bookingForm.handleSubmit(handleBookService)} className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">Your Full Name *</Label>
+                    <Input {...bookingForm.register("name", { required: true })} placeholder="e.g. Dawit Bekele" className="mt-1" required />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700">Email Address *</Label>
+                      <Input type="email" {...bookingForm.register("email", { required: true })} placeholder="you@example.com" className="mt-1" required />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label>Phone Number *</Label>
-                      <Input {...bookingForm.register("phone", { required: true })} placeholder="+251 9..." required />
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700">Phone Number *</Label>
+                      <Input {...bookingForm.register("phone", { required: true })} placeholder="+251 911 000000" className="mt-1" required />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Service Address *</Label>
-                    <Input {...bookingForm.register("address", { required: true })} placeholder="e.g. Bole Atlas, Addis Ababa" required />
-                  </div>
-                  <div className="space-y-1.5">
+
+                  <div>
                     <div className="flex items-center justify-between">
-                      <Label>Telegram Username (Optional)</Label>
+                      <Label className="text-sm font-semibold text-slate-700">National ID / Fayda / Kebele ID *</Label>
+                      <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Identity Verified
+                      </span>
+                    </div>
+                    <Input {...bookingForm.register("national_id", { required: true })} placeholder="e.g. FAN-123456 or Kebele ID" className="mt-1" required />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700">Service Address *</Label>
+                      <Input {...bookingForm.register("address", { required: true })} placeholder="Bole Sub-City, House 123" className="mt-1" required />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700">Nearest Landmark *</Label>
+                      <Input {...bookingForm.register("landmark", { required: true })} placeholder="Behind Edna Mall, Building B" className="mt-1" required />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">Service Specialty</Label>
+                    <select
+                      {...bookingForm.register("service_type")}
+                      className="w-full h-10 px-3 border border-slate-200 rounded-md text-sm bg-white mt-1"
+                    >
+                      <option value="HVAC">HVAC (Heating & Cooling)</option>
+                      <option value="Plumbing">Plumbing & Water</option>
+                      <option value="Electrical">Electrical & Power</option>
+                      <option value="General">General Maintenance</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">Issue Summary *</Label>
+                    <Input {...bookingForm.register("title", { required: true })} placeholder="e.g. AC unit leaking, Pipe repair" className="mt-1" required />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">Detailed Description</Label>
+                    <Textarea {...bookingForm.register("description")} placeholder="Describe what happened..." rows={2} className="mt-1" />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold text-slate-700">Telegram Username (Optional)</Label>
                       <a
                         href="https://t.me/FieldFlowApp_bot"
                         target="_blank"
@@ -232,38 +281,60 @@ export function CustomerPortal() {
                         Start Bot @FieldFlowApp_bot ↗
                       </a>
                     </div>
-                    <Input {...bookingForm.register("telegram_username")} placeholder="@username for repair alerts" />
-                    <p className="text-[11px] text-muted-foreground">
-                      Receive live repair updates & receipt alerts directly on Telegram.
-                    </p>
+                    <Input {...bookingForm.register("telegram_username")} placeholder="@username for live alerts" className="mt-1" />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Service Specialty</Label>
-                    <select
-                      {...bookingForm.register("service_type")}
-                      className="w-full h-10 px-3 border border-slate-200 rounded-md text-sm bg-white"
-                    >
-                      <option value="HVAC">HVAC (Heating & Cooling)</option>
-                      <option value="Plumbing">Plumbing & Water</option>
-                      <option value="Electrical">Electrical & Power</option>
-                      <option value="General">General Maintenance</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Issue Summary *</Label>
-                    <Input {...bookingForm.register("title", { required: true })} placeholder="e.g. AC unit leaking, Socket replacement" required />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Detailed Description</Label>
-                    <Textarea {...bookingForm.register("description")} placeholder="Describe what happened..." rows={3} />
-                  </div>
-                  <Button type="submit" className="w-full h-11" disabled={bookingSubmitting}>
-                    {bookingSubmitting ? "Submitting..." : "Submit & Proceed to Chapa Deposit (150 ETB)"}
+
+                  <Button type="submit" size="lg" className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={bookingSubmitting}>
+                    {bookingSubmitting ? "Verifying & Submitting..." : "Verify & Proceed to Chapa Deposit (150 ETB)"}
                   </Button>
                 </form>
-              </DialogContent>
-            </Dialog>
-          </motion.div>
+              </motion.div>
+            ) : (
+              <motion.div
+                className="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-2xl border border-slate-100"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <form onSubmit={handleLookup} className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">Enter your client email address</Label>
+                    <Input
+                      type="email"
+                      required
+                      value={emailInput}
+                      onChange={e => setEmailInput(e.target.value)}
+                      placeholder="e.g. client@example.com"
+                      className="mt-2 h-12 text-base"
+                    />
+                  </div>
+                  <Button type="submit" size="lg" className="w-full text-base bg-blue-600 hover:bg-blue-700 text-white" disabled={lookingUp}>
+                    {lookingUp ? "Searching..." : "View My Portal"} <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </form>
+
+                {errorMessage && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs leading-relaxed text-center">
+                    {errorMessage}
+                  </div>
+                )}
+
+                <div className="relative my-6 text-center">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
+                  <span className="relative bg-white px-3 text-xs uppercase tracking-wider text-slate-400 font-semibold">need a repair?</span>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setActiveTab("book")}
+                  className="w-full border-emerald-600/30 text-emerald-700 hover:bg-emerald-50"
+                >
+                  <Wrench className="w-4 h-4 mr-2" /> Book a New Service
+                </Button>
+              </motion.div>
+            )}
+          </div>
         ) : (
           <motion.div
             className="space-y-8"
