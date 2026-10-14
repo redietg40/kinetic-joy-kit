@@ -24,6 +24,11 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
   const [customerJobs, setCustomerJobs] = useState<any[]>([]);
   const [customerInvoices, setCustomerInvoices] = useState<any[]>([]);
 
+  const [verifyIdOpen, setVerifyIdOpen] = useState(false);
+  const [nationalIdInput, setNationalIdInput] = useState("");
+  const [idType, setIdType] = useState("National ID (Fayda)");
+  const [verifyingId, setVerifyingId] = useState(false);
+
   const [bookingOpen, setBookingOpen] = useState(false);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const bookingForm = useForm({
@@ -122,6 +127,32 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
       toast.error("Could not submit request. Please try again.");
     } finally {
       setBookingSubmitting(false);
+    }
+  };
+
+  const handleVerifyId = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nationalIdInput.trim() || !customer?.id) return;
+    setVerifyingId(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/customer-portal/verify-id/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          customer_id: customer.id, 
+          national_id: nationalIdInput.trim(),
+          id_type: idType 
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to verify ID");
+      setCustomer({ ...customer, national_id: data.national_id });
+      setVerifyIdOpen(false);
+      toast.success(`${idType} verified successfully!`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to verify ID");
+    } finally {
+      setVerifyingId(false);
     }
   };
 
@@ -297,13 +328,13 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
               >
                 <form onSubmit={handleLookup} className="space-y-4">
                   <div>
-                    <Label className="text-sm font-semibold text-slate-700">Enter your client email address</Label>
+                    <Label className="text-sm font-semibold text-slate-700">Lookup by Email, Phone, or National ID / Fayda</Label>
                     <Input
-                      type="email"
+                      type="text"
                       required
                       value={emailInput}
                       onChange={e => setEmailInput(e.target.value)}
-                      placeholder="e.g. client@example.com"
+                      placeholder="e.g. client@example.com, 0912..., or FAN-..."
                       className="mt-2 h-12 text-base"
                     />
                   </div>
@@ -347,6 +378,69 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                 <span className="text-xs uppercase font-bold text-primary tracking-wider">Client Profile</span>
                 <h2 className="text-2xl font-bold text-slate-900 mt-1">Welcome back, {customer.name}!</h2>
                 <p className="text-slate-500 text-sm mt-0.5">{customer.address || "Addis Ababa"} · {customer.phone || customer.email}</p>
+                
+                {/* National ID Status & Verification Action */}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {customer.national_id ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      Verified ID: {customer.national_id}
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                        <Lock className="w-3 h-3 text-amber-600" />
+                        National ID Not Verified
+                      </span>
+                      <Dialog open={verifyIdOpen} onOpenChange={setVerifyIdOpen}>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline" className="h-7 text-xs border-amber-300 text-amber-800 hover:bg-amber-50">
+                            Verify National ID Now
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                              Verify National ID / Fayda
+                            </DialogTitle>
+                          </DialogHeader>
+                          <form onSubmit={handleVerifyId} className="space-y-4 pt-3">
+                            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-950 leading-relaxed">
+                              🛡️ <strong>Technician Safety & Identity Assurance:</strong> All home service visits require verified identity. Submitting your government ID establishes a digital paper trail linked to your service record.
+                            </div>
+                            <div>
+                              <Label className="text-sm font-semibold text-slate-700">Select ID Type</Label>
+                              <select
+                                value={idType}
+                                onChange={e => setIdType(e.target.value)}
+                                className="w-full h-10 px-3 border border-slate-200 rounded-md text-sm bg-white mt-1"
+                              >
+                                <option value="National ID (Fayda)">Ethiopian National ID (Fayda - FAN)</option>
+                                <option value="Kebele ID">Resident / Kebele ID</option>
+                                <option value="Passport">Ethiopian Passport</option>
+                                <option value="Driver's License">Driver's License</option>
+                              </select>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-semibold text-slate-700">{idType} Number *</Label>
+                              <Input
+                                required
+                                value={nationalIdInput}
+                                onChange={e => setNationalIdInput(e.target.value)}
+                                placeholder="e.g. FAN-123456789 or Kebele ID"
+                                className="mt-1"
+                              />
+                            </div>
+                            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={verifyingId}>
+                              {verifyingId ? "Verifying..." : `Verify & Save ${idType}`}
+                            </Button>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <Dialog open={bookingOpen} onOpenChange={setBookingOpen}>
@@ -420,6 +514,29 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                       <div className="bg-slate-50 p-3 rounded-xl mb-3 text-sm">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Scheduled Date</span>
                         <p className="font-medium">{job.scheduled_at ? friendlyDate(job.scheduled_at) : "Pending Scheduling"}</p>
+                      </div>
+
+                      {/* Security Verification & Chapa Deposit Status */}
+                      <div className="bg-slate-50 p-3 rounded-xl mb-3 text-xs space-y-1.5 border border-slate-100">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500 font-medium">🛡️ Identity Verification:</span>
+                          <span className={customer.national_id ? "text-emerald-700 font-semibold" : "text-amber-700 font-medium"}>
+                            {customer.national_id ? `Verified (${customer.national_id})` : "Pending ID Submission"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500 font-medium">💳 Chapa Deposit (150 ETB):</span>
+                          {job.booking_fee_paid ? (
+                            <span className="text-emerald-700 font-semibold">✓ Paid & Verified</span>
+                          ) : (
+                            <a
+                              href={`/chapa-checkout?job_id=${job.id}&amount=150`}
+                              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px]"
+                            >
+                              Pay 150 ETB Deposit
+                            </a>
+                          )}
+                        </div>
                       </div>
 
                       {job.technician_notes && (

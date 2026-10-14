@@ -5,7 +5,7 @@ from .views import (
     CustomerViewSet, TechnicianViewSet, JobViewSet, InvoiceViewSet,
     RegisterView, MeView, BookServiceView, ChapaWebhookView,
     ChatMessageViewSet, InventoryItemViewSet, JobPartUsageViewSet,
-    CustomerPortalLookupView
+    CustomerPortalLookupView, CustomerVerifyNationalIdView
 )
 
 router = DefaultRouter()
@@ -24,6 +24,7 @@ urlpatterns = [
     path('auth/me/', MeView.as_view(), name='auth_me'),
     path('book/', BookServiceView.as_view(), name='public_book'),
     path('customer-portal/lookup/', CustomerPortalLookupView.as_view(), name='customer_portal_lookup'),
+    path('customer-portal/verify-id/', CustomerVerifyNationalIdView.as_view(), name='customer_verify_id'),
     path('webhooks/chapa/', ChapaWebhookView.as_view(), name='chapa_webhook'),
     path('', include(router.urls)),
 ]

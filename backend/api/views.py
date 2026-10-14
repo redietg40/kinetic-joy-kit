@@ -180,15 +180,19 @@ class CustomerPortalLookupView(APIView):
         if not query:
             return Response({"error": "Email or phone number is required"}, status=400)
         
-        # Search by email (case-insensitive), phone, or name
+        # Search by email (case-insensitive), phone, national_id, notes, or name
         customer = Customer.objects.filter(email__iexact=query).first()
         if not customer:
             customer = Customer.objects.filter(phone__iexact=query).first()
         if not customer:
+            customer = Customer.objects.filter(national_id__iexact=query).first()
+        if not customer:
+            customer = Customer.objects.filter(notes__icontains=query).first()
+        if not customer:
             customer = Customer.objects.filter(name__iexact=query).first()
 
         if not customer:
-            return Response({"found": False, "message": "No customer found with that email or phone number."}, status=404)
+            return Response({"found": False, "message": "No customer found with that email, phone, or National ID."}, status=404)
         
         serializer = CustomerSerializer(customer)
         jobs = Job.objects.filter(customer=customer).order_by('-id')
@@ -202,6 +206,30 @@ class CustomerPortalLookupView(APIView):
             "jobs": job_serializer.data,
             "invoices": invoice_serializer.data
         })
+
+class CustomerVerifyNationalIdView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        customer_id = request.data.get('customer_id')
+        national_id = (request.data.get('national_id') or '').strip()
+        id_type = request.data.get('id_type', 'National ID (Fayda)')
+        if not customer_id or not national_id:
+            return Response({"error": "Customer ID and National ID / Fayda are required."}, status=400)
+        
+        try:
+            customer = Customer.objects.get(id=customer_id)
+            customer.national_id = national_id
+            customer.notes = f"{customer.notes or ''}\n[Verified {id_type}]: {national_id}"
+            customer.save()
+            return Response({
+                "status": "success",
+                "message": f"{id_type} verified successfully!",
+                "national_id": national_id,
+                "id_type": id_type
+            })
+        except Customer.DoesNotExist:
+            return Response({"error": "Customer not found."}, status=404)
 
 class ChapaWebhookView(APIView):
     permission_classes = [AllowAny]
