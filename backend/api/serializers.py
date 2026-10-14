@@ -12,6 +12,11 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'password', 'role', 'name')
         extra_kwargs = {'username': {'required': False}}
 
+    def validate_email(self, value):
+        if User.objects.filter(username__iexact=value).exists() or User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("An account with this email already exists. Please log in.")
+        return value
+
     def create(self, validated_data):
         role = validated_data.pop('role', None)
         name = validated_data.pop('name', '')
