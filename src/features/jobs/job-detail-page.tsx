@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -51,8 +51,8 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
     queryKey: ["job", jobId],
     queryFn: () => getJob(jobId),
   });
-  const { data: customers } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
-  const { data: techs } = useSuspenseQuery({ queryKey: ["technicians"], queryFn: listTechnicians });
+  const { data: customers = [] } = useSuspenseQuery({ queryKey: ["customers"], queryFn: listCustomers });
+  const { data: techs = [] } = useSuspenseQuery({ queryKey: ["technicians"], queryFn: listTechnicians });
   const { data: inventory = [] } = useQuery({ queryKey: ["inventory"], queryFn: listInventory });
   const { data: jobParts = [] } = useQuery({ queryKey: ["jobParts", jobId], queryFn: () => listJobParts(jobId) });
   
@@ -73,7 +73,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
     },
   });
   const scheduleMutation = useMutation({
-    mutationFn: (data: { scheduled_at: string; status: string }) => updateJob(jobId, data),
+    mutationFn: (data: { scheduled_at: string; status: Job["status"] }) => updateJob(jobId, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["job", jobId] });
       setScheduleOpen(false);
@@ -82,7 +82,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
   });
   
   const statusMutation = useMutation({
-    mutationFn: (status: string) => updateJob(jobId, { status }),
+    mutationFn: (status: Job["status"]) => updateJob(jobId, { status }),
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: ["job", jobId] });
       toast.success(`Job marked as ${data.status.replace("_", " ")}`);
@@ -381,7 +381,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                         <Label>Select Part</Label>
                         <select required name="item" className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-sm">
                           <option value="">-- Choose part --</option>
-                          {inventory.filter(i => i.quantity > 0).map(i => (
+                          {inventory.filter((i: any) => i.quantity > 0).map((i: any) => (
                             <option key={i.id} value={i.id}>{i.name} ({i.quantity} {i.unit} in stock)</option>
                           ))}
                         </select>
@@ -403,7 +403,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
               </div>
             ) : (
               <div className="mt-4 space-y-2">
-                {jobParts.map(jp => (
+                {jobParts.map((jp: any) => (
                   <div key={jp.id} className="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                     <div>
                       <p className="text-sm font-medium">{jp.item_details?.name || 'Unknown Part'}</p>
@@ -420,20 +420,20 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
           <section className="panel">
             <h2 className="mb-5 font-semibold">Customer</h2>
             <div className="contact-card">
-              <span className="avatar avatar-lg">{customer?.name.slice(0, 2).toUpperCase()}</span>
+              <span className="avatar avatar-lg">{(customer?.name || "Customer").slice(0, 2).toUpperCase()}</span>
               <div>
-                <strong>{customer?.name}</strong>
-                <p>{customer?.email}</p>
+                <strong>{customer?.name || "Direct Booking Customer"}</strong>
+                <p>{customer?.email || "No email on file"}</p>
               </div>
             </div>
             <div className="info-list mt-5">
               <p>
                 <Phone />
-                {customer?.phone}
+                {customer?.phone || "No phone provided"}
               </p>
               <p>
                 <MapPin />
-                {customer?.address}
+                {customer?.address || job.address || "No address provided"}
               </p>
               {customer?.telegram_username && (
                 <p className="text-blue-500 font-medium">💬 {customer.telegram_username}</p>
