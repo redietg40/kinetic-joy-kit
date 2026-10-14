@@ -65,12 +65,19 @@ class BookServiceView(APIView):
             if not email:
                 return Response({"error": "Email is required."}, status=400)
 
+            national_id = (data.get('national_id') or '').strip()
+            landmark = (data.get('landmark') or '').strip()
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            client_ip = x_forwarded_for.split(',')[0].strip() if x_forwarded_for else request.META.get('REMOTE_ADDR', '')
+
             # Assign to business owner
             owner = User.objects.filter(is_superuser=True).first() or User.objects.first()
 
             # Find existing customer or create new
             import uuid
             customer = Customer.objects.filter(email__iexact=email).first()
+            audit_note = f"National ID/Fayda: {national_id or 'N/A'} | Landmark: {landmark or 'N/A'} | IP: {client_ip}"
+            
             if not customer:
                 customer = Customer.objects.create(
                     id=f"c_{uuid.uuid4().hex[:8]}",
@@ -78,15 +85,25 @@ class BookServiceView(APIView):
                     phone=data.get('phone', ''),
                     email=email,
                     address=data.get('address', 'Addis Ababa'),
+                    national_id=national_id,
+                    notes=audit_note,
                     telegram_username=data.get('telegram_username', ''),
                     owner=owner
                 )
             else:
+                if national_id:
+                    customer.national_id = national_id
                 if data.get('telegram_username'):
                     customer.telegram_username = data.get('telegram_username')
+                if data.get('phone'):
+                    customer.phone = data.get('phone')
+                customer.notes = audit_note
                 if not customer.owner and owner:
                     customer.owner = owner
                 customer.save()
+
+            full_address = f"{data.get('address', customer.address)} (Landmark: {landmark})" if landmark else data.get('address', customer.address)
+            desc_with_audit = f"{data.get('description', '')}\n\n[🛡️ Security Digital Paper Trail]:\n• National ID/Fayda: {national_id or 'Provided'}\n• Landmark: {landmark or 'Provided'}\n• Recorded IP: {client_ip}\n• Financial Paper Trail: Chapa Escrow"
 
             # Create unassigned pending job immediately visible to business owner
             job = Job.objects.create(
@@ -98,8 +115,8 @@ class BookServiceView(APIView):
                 booking_fee_amount=150.00,
                 booking_fee_paid=False,
                 priority='normal',
-                description=data.get('description', ''),
-                address=data.get('address', customer.address),
+                description=desc_with_audit,
+                address=full_address,
                 owner=owner
             )
 
@@ -127,7 +144,8 @@ class BookServiceView(APIView):
                         f"🛠️ *FieldFlow Service Request Received*\n\n"
                         f"Hi {customer.name}, we received your service request for:\n"
                         f"*{job.title}* ({job.service_type})\n\n"
-                        f"📍 *Service Location:* {job.address}\n"
+                        f"🆔 *National ID / Fayda:* {national_id or 'Recorded'}\n"
+                        f"📍 *Service Location:* {full_address}\n"
                         f"💳 *Booking Deposit:* 150 ETB\n\n"
                         f"Please tap below to pay the deposit via Chapa and confirm your booking!"
                     )

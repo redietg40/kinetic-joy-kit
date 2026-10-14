@@ -7,6 +7,7 @@ class Customer(models.Model):
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=50)
     email = models.EmailField()
+    national_id = models.CharField(max_length=100, blank=True, null=True)
     address = models.TextField()
     telegram_username = models.CharField(max_length=100, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)

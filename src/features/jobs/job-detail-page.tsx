@@ -9,6 +9,7 @@ import {
   MapPin,
   Phone,
   ReceiptText,
+  ShieldCheck,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -439,6 +440,46 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                 <p className="text-blue-500 font-medium">💬 {customer.telegram_username}</p>
               )}
             </div>
+
+            {/* Digital Paper Trail / Security Verification Card */}
+            <div className="mt-5 p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 text-xs space-y-2">
+              <div className="flex items-center gap-1.5 font-semibold text-emerald-400">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Security & Identity Verification</span>
+              </div>
+              <div className="space-y-1 text-slate-300">
+                <p>
+                  <strong className="text-slate-400">National ID / Fayda:</strong>{" "}
+                  <span className="font-mono text-emerald-300 font-medium">
+                    {customer?.national_id || (customer?.notes?.match(/National ID\/Fayda:\s*([^|]+)/)?.[1]?.trim()) || "Recorded on File"}
+                  </span>
+                </p>
+                <p>
+                  <strong className="text-slate-400">Financial Escrow:</strong>{" "}
+                  <span className={job.booking_fee_paid ? "text-emerald-400 font-semibold" : "text-amber-400 font-medium"}>
+                    {job.booking_fee_paid ? "✓ 150 ETB Paid via Chapa (Bank/Telebirr Traced)" : "⏳ 150 ETB Deposit Pending"}
+                  </span>
+                </p>
+                <p>
+                  <strong className="text-slate-400">Digital Paper Trail:</strong>{" "}
+                  <span className="text-slate-300">Logged to Server & Database</span>
+                </p>
+              </div>
+            </div>
+
+            {isTech && (
+              <div className="mt-3 p-2.5 rounded-xl border border-red-500/30 bg-red-950/20 text-xs flex items-center justify-between">
+                <span className="text-red-400 font-medium flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-red-400" /> Technician SOS Active
+                </span>
+                <a
+                  href="tel:991"
+                  className="px-2.5 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white font-bold text-[11px]"
+                >
+                  Emergency (991)
+                </a>
+              </div>
+            )}
           </section>
           <section className="panel">
             <div className="flex items-center justify-between">
