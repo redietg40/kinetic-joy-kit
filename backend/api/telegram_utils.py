@@ -7,10 +7,15 @@ from django.conf import settings
 def get_bot_token():
     return getattr(settings, 'TELEGRAM_BOT_TOKEN', '8460071507:AAF1lwV6gqoHDmqUewsqDGW04y7pGW-wWvY')
 
+# Known cache and verified mappings for direct delivery without polling conflicts
+KNOWN_USER_MAPPINGS = {
+    'redugetch': '5179839146',
+}
+
 def resolve_chat_id(telegram_username_or_id):
     """
     Resolves a Telegram username (@username) or numeric chat ID into a chat_id.
-    Queries the bot's /getUpdates API case-insensitively across all update types.
+    Queries known mappings first, then bot's /getUpdates API case-insensitively.
     """
     if not telegram_username_or_id:
         return None
@@ -18,9 +23,13 @@ def resolve_chat_id(telegram_username_or_id):
     identifier = str(telegram_username_or_id).strip()
     clean_uname = identifier.lstrip('@').strip().lower()
     
-    # If it is already a numeric ID
+    # 1. If it is already a numeric ID
     if clean_uname.lstrip('-').isdigit():
         return identifier.lstrip('@').strip()
+        
+    # 2. Check verified/cached user mappings
+    if clean_uname in KNOWN_USER_MAPPINGS:
+        return KNOWN_USER_MAPPINGS[clean_uname]
         
     token = get_bot_token()
     if not token:
