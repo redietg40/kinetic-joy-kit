@@ -65,6 +65,42 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [noteText, setNoteText] = useState(job?.technician_notes || "");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (scheduleOpen) {
+      if (job?.scheduled_at) {
+        const d = new Date(job.scheduled_at);
+        if (!isNaN(d.getTime())) {
+          const pad = (n: number) => String(n).padStart(2, "0");
+          setScheduleDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+          return;
+        }
+      }
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setScheduleDate(`${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`);
+    }
+  }, [scheduleOpen, job?.scheduled_at]);
+
+  const handleConfirmSchedule = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scheduleDate) {
+      toast.error("Please pick a valid appointment date and time.");
+      return;
+    }
+    const d = new Date(scheduleDate);
+    if (isNaN(d.getTime())) {
+      toast.error("Invalid date or time selected. Please select a valid calendar date.");
+      return;
+    }
+    scheduleMutation.mutate({
+      scheduled_at: d.toISOString(),
+      status: "scheduled",
+    });
+  };
+
   const mutation = useMutation({
     mutationFn: (technician_id: string) => updateJob(jobId, { technician_id }),
     onSuccess: () => {
@@ -78,8 +114,11 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["job", jobId] });
       setScheduleOpen(false);
-      toast.success("Job scheduled! The customer has been notified via email.");
+      toast.success("Job scheduled! The customer has been notified via email & Telegram.");
     },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to schedule job.");
+    }
   });
   
   const statusMutation = useMutation({
@@ -198,28 +237,27 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                         <DialogHeader>
                           <DialogTitle>Schedule Repair</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4 py-4">
+                        <form onSubmit={handleConfirmSchedule} className="space-y-4 py-4">
                           <p className="text-sm text-muted-foreground">
                             Set a date and time for this repair. The customer will automatically receive
                             an email (and Telegram if provided) notification.
                           </p>
-                          <input
+                          <Input
                             type="datetime-local"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                            required
+                            min={new Date().toISOString().slice(0, 16)}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background text-foreground"
                             value={scheduleDate}
                             onChange={(e) => setScheduleDate(e.target.value)}
                           />
                           <Button
-                            onClick={() =>
-                              scheduleMutation.mutate({
-                                scheduled_at: new Date(scheduleDate).toISOString(),
-                                status: "scheduled",
-                              })
-                            }
+                            type="submit"
+                            disabled={!scheduleDate || scheduleMutation.isPending}
+                            className="w-full bg-primary text-white"
                           >
-                            Confirm & Notify
+                            {scheduleMutation.isPending ? "Scheduling..." : "Confirm & Notify"}
                           </Button>
-                        </div>
+                        </form>
                       </DialogContent>
                     </Dialog>
                   </>
@@ -314,7 +352,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
               ))}
             </div>
             <div className="info-list">
-              <p>
+              <p suppressHydrationWarning>
                 <CalendarDays />
                 {job.scheduled_at ? friendlyDate(job.scheduled_at) : "Not scheduled yet"}
               </p>
