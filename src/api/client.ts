@@ -17,24 +17,34 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  try {
+  let attempts = 0;
+  while (attempts < 2) {
+    attempts++;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      headers,
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!response.ok) throw new Error(`Request failed (${response.status})`);
-    return response.json() as Promise<T>;
-  } catch (error: any) {
-    if (typeof window === 'undefined') {
-      // In SSR mode, log a clear warning if Django backend is not reachable
-      console.warn(`[SSR] Django backend at ${API_BASE_URL} unreachable: ${error.message}`);
+    const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout for cloud cold-starts
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        ...init,
+        headers,
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!response.ok) throw new Error(`Request failed (${response.status})`);
+      return (await response.json()) as Promise<T>;
+    } catch (error: any) {
+      clearTimeout(timeout);
+      if (attempts >= 2) {
+        if (typeof window === "undefined") {
+          console.warn(`[SSR] Django backend at ${API_BASE_URL} unreachable: ${error.message}`);
+        }
+        throw error;
+      }
+      // Brief pause before retry
+      await new Promise((r) => setTimeout(r, 1200));
     }
-    throw error;
   }
+  throw new Error("Request failed after retry");
 }
 
 export const delay = (ms = 550) => new Promise((resolve) => setTimeout(resolve, ms));

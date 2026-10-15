@@ -3,9 +3,14 @@ import { customers as mockCustomers } from "./mock-data";
 import type { Customer } from "@/types";
 
 export async function listCustomers(): Promise<Customer[]> { 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('fieldflow-token') : null;
   try {
     return await apiRequest<Customer[]>("/api/customers/");
-  } catch {
+  } catch (err) {
+    if (token) {
+      console.error("[API] Failed to fetch customers from backend:", err);
+      return [];
+    }
     console.warn("[API] Backend unavailable — using mock customers data");
     return mockCustomers;
   }

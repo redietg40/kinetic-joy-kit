@@ -3,9 +3,14 @@ import { jobs as mockJobs } from "./mock-data";
 import type { Job } from "@/types";
 
 export async function listJobs(): Promise<Job[]> { 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('fieldflow-token') : null;
   try {
     return await apiRequest<Job[]>("/api/jobs/");
-  } catch {
+  } catch (err) {
+    if (token) {
+      console.error("[API] Failed to fetch jobs from backend:", err);
+      return [];
+    }
     console.warn("[API] Backend unavailable — using mock jobs data");
     return mockJobs;
   }

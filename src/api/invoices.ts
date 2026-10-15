@@ -3,9 +3,14 @@ import { invoices as mockInvoices } from "./mock-data";
 import type { Invoice } from "@/types";
 
 export async function listInvoices(): Promise<Invoice[]> { 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('fieldflow-token') : null;
   try {
     return await apiRequest<Invoice[]>("/api/invoices/");
-  } catch {
+  } catch (err) {
+    if (token) {
+      console.error("[API] Failed to fetch invoices from backend:", err);
+      return [];
+    }
     console.warn("[API] Backend unavailable — using mock invoices data");
     return mockInvoices;
   }
