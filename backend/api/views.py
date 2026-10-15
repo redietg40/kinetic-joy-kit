@@ -340,11 +340,10 @@ class JobViewSet(viewsets.ModelViewSet):
         
         job = serializer.save()
         
-        is_newly_scheduled = (old_status != 'scheduled' and job.status == 'scheduled')
-        is_rescheduled = (job.status == 'scheduled' and old_scheduled_at != job.scheduled_at)
+        # Trigger notification if schedule was explicitly set, changed, or confirmed
+        schedule_triggered = ('scheduled_at' in self.request.data) or (job.status == 'scheduled' and old_status != 'scheduled') or (job.status == 'scheduled' and old_scheduled_at != job.scheduled_at)
         
-        # If the job just got scheduled OR rescheduled, notify the customer!
-        if is_newly_scheduled or is_rescheduled:
+        if job.status == 'scheduled' and schedule_triggered:
             from django.core.mail import send_mail
             from django.conf import settings
             from django.utils import timezone
@@ -406,6 +405,37 @@ class JobViewSet(viewsets.ModelViewSet):
                 send_telegram_message(job.customer.telegram_username, status_msg)
             except Exception as tg_err:
                 print(f"[Telegram Job Status Error]: {tg_err}")
+
+    @action(detail=True, methods=['post'])
+    def notify_telegram(self, request, pk=None):
+        job = self.get_object()
+        if not job.customer:
+            return Response({"error": "No customer attached to this job."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        tg_id = job.customer.telegram_username
+        if not tg_id:
+            return Response({"error": "Customer has no Telegram username or Chat ID configured."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from django.utils import timezone
+        date_str = timezone.localtime(job.scheduled_at).strftime('%B %d, %Y at %I:%M %p') if job.scheduled_at else 'TBD'
+        tech_name = job.technician.name if job.technician else 'A FieldFlow Specialist'
+        
+        bot_msg = (
+            f"🔧 *FieldFlow Repair Notification*\n\n"
+            f"Hi {job.customer.name}, here is your latest repair update for:\n"
+            f"*{job.title}*\n\n"
+            f"📅 *Scheduled:* {date_str}\n"
+            f"👷 *Technician:* {tech_name}\n"
+            f"📍 *Location:* {job.address or job.customer.address}\n"
+            f"📊 *Current Status:* {job.status.replace('_', ' ').capitalize()}\n\n"
+            f"Thank you for choosing FieldFlow!"
+        )
+        
+        res = send_telegram_message(tg_id, bot_msg)
+        if res.get("success"):
+            return Response({"status": "success", "message": "Notification dispatched to Telegram!", "result": res.get("result")})
+        else:
+            return Response({"error": res.get("error", "Failed to dispatch Telegram message")}, status=status.HTTP_400_BAD_REQUEST)
 
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()

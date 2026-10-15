@@ -9,12 +9,13 @@ import {
   MapPin,
   Phone,
   ReceiptText,
+  Send,
   ShieldCheck,
   UserRound,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getJob, updateJob } from "@/api/jobs";
+import { getJob, updateJob, notifyJobTelegram } from "@/api/jobs";
 import { listCustomers } from "@/api/customers";
 import { listTechnicians } from "@/api/technicians";
 import { listInventory, listJobParts, useJobPart } from "@/api/inventory";
@@ -134,6 +135,16 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["job", jobId] });
       toast.success("Announcement sent to owner!");
+    }
+  });
+
+  const telegramNotifyMutation = useMutation({
+    mutationFn: () => notifyJobTelegram(jobId),
+    onSuccess: (res) => {
+      toast.success(res.message || "Telegram notification dispatched successfully!");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to dispatch Telegram notification.");
     }
   });
 
@@ -260,6 +271,19 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                         </form>
                       </DialogContent>
                     </Dialog>
+                    {customer?.telegram_username && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="text-blue-500 hover:text-blue-400 border-blue-500/30 hover:bg-blue-500/10 gap-1.5"
+                        onClick={() => telegramNotifyMutation.mutate()}
+                        disabled={telegramNotifyMutation.isPending}
+                        title="Dispatch Telegram notification to customer"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        {telegramNotifyMutation.isPending ? "Sending..." : "Notify Telegram"}
+                      </Button>
+                    )}
                   </>
                 )}
                 {!isTech && (
@@ -329,7 +353,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                   </Dialog>
                 )}
                 {!isTech && (
-                  <Select value={job.status} onValueChange={(v) => statusMutation.mutate(v)}>
+                  <Select value={job.status} onValueChange={(v) => statusMutation.mutate(v as Job["status"])}>
                     <SelectTrigger className="w-[140px]">
                       <SelectValue placeholder="Update status" />
                     </SelectTrigger>
@@ -475,7 +499,19 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
                 {customer?.address || job.address || "No address provided"}
               </p>
               {customer?.telegram_username && (
-                <p className="text-blue-500 font-medium">💬 {customer.telegram_username}</p>
+                <div className="flex items-center justify-between pt-1">
+                  <p className="text-blue-500 font-medium">💬 {customer.telegram_username}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-blue-500 hover:text-blue-400 hover:bg-blue-500/10 gap-1"
+                    onClick={() => telegramNotifyMutation.mutate()}
+                    disabled={telegramNotifyMutation.isPending}
+                  >
+                    <Send className="w-3 h-3" />
+                    {telegramNotifyMutation.isPending ? "Sending..." : "Send Alert"}
+                  </Button>
+                </div>
               )}
             </div>
 

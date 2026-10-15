@@ -64,3 +64,10 @@ export async function updateJob(id: string, patch: Partial<Job>): Promise<Job> {
     return mockJobs[idx];
   }
 }
+
+export async function notifyJobTelegram(jobId: string): Promise<{ status: string; message: string }> {
+  return await apiRequest<{ status: string; message: string }>(`/api/jobs/${jobId}/notify_telegram/`, {
+    method: 'POST'
+  });
+}
+

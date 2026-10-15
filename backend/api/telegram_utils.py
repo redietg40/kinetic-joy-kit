@@ -98,6 +98,22 @@ def send_telegram_message(telegram_username_or_id, text, parse_mode='Markdown', 
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode('utf-8'))
             return {"success": True, "result": data}
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode('utf-8', errors='ignore')
+        print(f"[Telegram] HTTPError {e.code}: {err_msg}")
+        if "parse entities" in err_msg.lower() and payload.get('parse_mode'):
+            payload.pop('parse_mode', None)
+            try:
+                retry_req = urllib.request.Request(
+                    f"https://api.telegram.org/bot{token}/sendMessage",
+                    data=json.dumps(payload).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'}
+                )
+                with urllib.request.urlopen(retry_req, timeout=10) as retry_resp:
+                    return {"success": True, "result": json.loads(retry_resp.read().decode('utf-8'))}
+            except Exception as retry_err:
+                return {"success": False, "error": str(retry_err)}
+        return {"success": False, "error": f"HTTP {e.code}: {err_msg}"}
     except Exception as e:
         print(f"[Telegram] Error sending message: {e}")
         return {"success": False, "error": str(e)}
