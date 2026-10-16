@@ -11,7 +11,7 @@ import { API_BASE_URL } from "@/api/client";
 
 const bookingSchema = z.object({
   name: z.string().min(2, "Full name is required"),
-  email: z.string().email("Valid email is required"),
+  email: z.string().email("Please enter a valid email if provided").optional().or(z.literal("")),
   phone: z.string().min(9, "Phone number is required"),
   national_id: z.string().min(4, "National ID / Fayda / Kebele ID is required for verification"),
   address: z.string().min(5, "Address is required"),

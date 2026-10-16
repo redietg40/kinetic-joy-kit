@@ -6,6 +6,7 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     role = serializers.CharField(write_only=True, required=False) # 'technician' or 'customer'
     name = serializers.CharField(write_only=True, required=False) # Full name
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = User
@@ -13,17 +14,20 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'username': {'required': False}}
 
     def validate_email(self, value):
-        if User.objects.filter(username__iexact=value).exists() or User.objects.filter(email__iexact=value).exists():
+        if value and (User.objects.filter(username__iexact=value).exists() or User.objects.filter(email__iexact=value).exists()):
             raise serializers.ValidationError("An account with this email already exists. Please log in.")
         return value
 
     def create(self, validated_data):
+        import uuid
         role = validated_data.pop('role', None)
         name = validated_data.pop('name', '')
-        # email is used as username
+        email = validated_data.get('email') or ''
+        username = validated_data.get('username') or email or f"user_{uuid.uuid4().hex[:8]}"
+        
         user = User.objects.create_user(
-            username=validated_data['email'],
-            email=validated_data['email'],
+            username=username,
+            email=email,
             password=validated_data['password'],
             first_name=name
         )
@@ -33,7 +37,7 @@ class UserSerializer(serializers.ModelSerializer):
             Technician.objects.create(
                 id=f"t{user.id}",
                 name=name,
-                email=user.email,
+                email=user.email or None,
                 phone="",
                 status="offline",
                 specialty="General"
@@ -42,7 +46,7 @@ class UserSerializer(serializers.ModelSerializer):
             Customer.objects.create(
                 id=f"c{user.id}",
                 name=name,
-                email=user.email,
+                email=user.email or None,
                 phone="",
                 address=""
             )
@@ -50,6 +54,9 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 class CustomerSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=False, allow_null=True, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
     class Meta:
         model = Customer
         fields = '__all__'

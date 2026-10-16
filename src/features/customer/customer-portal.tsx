@@ -75,14 +75,22 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
       const res = await fetch(`${API_BASE_URL}/api/customer-portal/lookup/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: query })
+        body: JSON.stringify({ query: query, email: query, phone: query })
       });
 
       if (!res.ok) {
         setCustomer(null);
-        setErrorMessage("No existing record found for this email. If you are a new client, please submit a service request below!");
-        // Pre-fill booking form email
-        bookingForm.setValue("email", query);
+        setErrorMessage("No existing record found for this Phone number, Telegram username, or National ID. If you are a new client, please submit a service request below!");
+        // Pre-fill booking form based on format
+        if (query.includes("@")) {
+          if (query.startsWith("@")) {
+            bookingForm.setValue("telegram_username", query);
+          } else {
+            bookingForm.setValue("email", query);
+          }
+        } else if (/^\+?\d+$/.test(query)) {
+          bookingForm.setValue("phone", query);
+        }
         return;
       }
 
@@ -334,12 +342,12 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-sm font-semibold text-slate-700">Email Address *</Label>
-                      <Input type="email" {...bookingForm.register("email", { required: true })} placeholder="you@example.com" className="mt-1" required />
-                    </div>
-                    <div>
                       <Label className="text-sm font-semibold text-slate-700">Phone Number *</Label>
                       <Input {...bookingForm.register("phone", { required: true })} placeholder="+251 911 000000" className="mt-1" required />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700">Email Address (Optional)</Label>
+                      <Input type="email" {...bookingForm.register("email")} placeholder="you@example.com (optional)" className="mt-1" />
                     </div>
                   </div>
 
@@ -415,13 +423,13 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
               >
                 <form onSubmit={handleLookup} className="space-y-4">
                   <div>
-                    <Label className="text-sm font-semibold text-slate-700">Lookup by Email, Phone, or National ID / Fayda</Label>
+                    <Label className="text-sm font-semibold text-slate-700">Lookup by Phone, Telegram Username, National ID, or Email</Label>
                     <Input
                       type="text"
                       required
                       value={emailInput}
                       onChange={e => setEmailInput(e.target.value)}
-                      placeholder="e.g. client@example.com, 0912..., or FAN-..."
+                      placeholder="e.g. 0911..., @telegram, FAN-..., or email"
                       className="mt-2 h-12 text-base"
                     />
                   </div>
@@ -579,11 +587,19 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                           </div>
 
                           <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs text-slate-600 space-y-1">
-                            <div className="font-semibold text-slate-800 flex items-center gap-1">
-                              <Mail className="w-3.5 h-3.5 text-slate-500" />
-                              Registered Email Destination:
+                            <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                              <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+                              Primary Code Delivery: Telegram (@FieldFlowApp_bot)
                             </div>
-                            <p className="font-mono text-slate-700">{customer?.email || "No email on file"}</p>
+                            {customer?.email ? (
+                              <p className="text-slate-500 font-mono text-[11px]">
+                                Also sending a copy to: {customer.email}
+                              </p>
+                            ) : (
+                              <p className="text-slate-500 text-[11px]">
+                                No email linked — code will be delivered instantly to Telegram.
+                              </p>
+                            )}
                           </div>
 
                           <Button
@@ -597,7 +613,7 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                               </span>
                             ) : (
                               <span className="flex items-center gap-2">
-                                <Send className="w-4 h-4" /> Send Verification Code (Telegram & Email)
+                                <Send className="w-4 h-4" /> Send Verification Code {customer?.email ? "(Telegram & Email)" : "(via Telegram)"}
                               </span>
                             )}
                           </Button>
@@ -614,12 +630,14 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                                   {otpSentInfo?.telegram_username ? ` (@${otpSentInfo.telegram_username.replace('@','')})` : ""}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <Mail className="w-4 h-4 text-blue-600 shrink-0" />
-                                <span>
-                                  <strong>Email:</strong> Check your inbox at <strong>{otpSentInfo?.masked_email || customer?.email}</strong>
-                                </span>
-                              </div>
+                              {(otpSentInfo?.masked_email || customer?.email) && (
+                                <div className="flex items-center gap-1.5">
+                                  <Mail className="w-4 h-4 text-blue-600 shrink-0" />
+                                  <span>
+                                    <strong>Email:</strong> Check inbox at <strong>{otpSentInfo?.masked_email || customer?.email}</strong>
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <a
                               href="https://t.me/FieldFlowApp_bot"

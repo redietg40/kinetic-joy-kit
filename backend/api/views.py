@@ -64,41 +64,55 @@ class BookServiceView(APIView):
         try:
             data = request.data
             email = (data.get('email') or '').strip().lower()
-            if not email:
-                return Response({"error": "Email is required."}, status=400)
-
+            phone = (data.get('phone') or '').strip()
+            telegram_username = (data.get('telegram_username') or '').strip().lstrip('@')
             national_id = (data.get('national_id') or '').strip()
             landmark = (data.get('landmark') or '').strip()
+
+            if not phone and not telegram_username and not email:
+                return Response({"error": "Please provide a Phone Number or Telegram username so our team can reach you."}, status=400)
+
             x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
             client_ip = x_forwarded_for.split(',')[0].strip() if x_forwarded_for else request.META.get('REMOTE_ADDR', '')
 
             # Assign to business owner
             owner = User.objects.filter(is_superuser=True).first() or User.objects.first()
 
-            # Find existing customer or create new
+            # Find existing customer by phone, telegram, national_id, or email
             import uuid
-            customer = Customer.objects.filter(email__iexact=email).first()
+            customer = None
+            if phone:
+                customer = Customer.objects.filter(phone=phone).first()
+            if not customer and telegram_username:
+                customer = Customer.objects.filter(telegram_username__iexact=telegram_username).first()
+            if not customer and national_id:
+                customer = Customer.objects.filter(national_id__iexact=national_id).first()
+            if not customer and email:
+                customer = Customer.objects.filter(email__iexact=email).first()
+
             audit_note = f"National ID/Fayda: {national_id or 'N/A'} | Landmark: {landmark or 'N/A'} | IP: {client_ip}"
             
             if not customer:
                 customer = Customer.objects.create(
                     id=f"c_{uuid.uuid4().hex[:8]}",
                     name=data.get('name', 'Client'),
-                    phone=data.get('phone', ''),
-                    email=email,
+                    phone=phone or None,
+                    email=email or None,
                     address=data.get('address', 'Addis Ababa'),
-                    national_id=national_id,
+                    national_id=national_id or None,
                     notes=audit_note,
-                    telegram_username=data.get('telegram_username', ''),
+                    telegram_username=telegram_username or None,
                     owner=owner
                 )
             else:
                 if national_id:
                     customer.national_id = national_id
-                if data.get('telegram_username'):
-                    customer.telegram_username = data.get('telegram_username')
-                if data.get('phone'):
-                    customer.phone = data.get('phone')
+                if telegram_username:
+                    customer.telegram_username = telegram_username
+                if phone:
+                    customer.phone = phone
+                if email:
+                    customer.email = email
                 customer.notes = audit_note
                 if not customer.owner and owner:
                     customer.owner = owner
@@ -122,20 +136,21 @@ class BookServiceView(APIView):
                 owner=owner
             )
 
-            # Send confirmation email
-            from django.core.mail import send_mail
-            from django.conf import settings
+            # Send confirmation email if email was provided
+            if customer.email:
+                from django.core.mail import send_mail
+                from django.conf import settings
 
-            try:
-                send_mail(
-                    "Service Request Received - FieldFlow",
-                    f"Hi {customer.name},\n\nWe have received your service request for '{job.title}'.\nWe are reviewing it and a technician will schedule your repair shortly!\n\nThanks,\nFieldFlow Team",
-                    settings.DEFAULT_FROM_EMAIL,
-                    [customer.email],
-                    fail_silently=True,
-                )
-            except Exception as mail_err:
-                print(f"Mail send error: {mail_err}")
+                try:
+                    send_mail(
+                        "Service Request Received - FieldFlow",
+                        f"Hi {customer.name},\n\nWe have received your service request for '{job.title}'.\nWe are reviewing it and a technician will schedule your repair shortly!\n\nThanks,\nFieldFlow Team",
+                        settings.DEFAULT_FROM_EMAIL,
+                        [customer.email],
+                        fail_silently=True,
+                    )
+                except Exception as mail_err:
+                    print(f"Mail send error: {mail_err}")
 
             # Send Telegram notification if telegram_username is provided
             if customer.telegram_username:
@@ -178,23 +193,26 @@ class CustomerPortalLookupView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        query = request.data.get('email', '').strip()
+        query = (request.data.get('email') or request.data.get('query') or request.data.get('phone') or '').strip()
         if not query:
-            return Response({"error": "Email or phone number is required"}, status=400)
+            return Response({"error": "Phone number, Telegram username, National ID, or Email is required."}, status=400)
         
-        # Search by email (case-insensitive), phone, national_id, notes, or name
-        customer = Customer.objects.filter(email__iexact=query).first()
+        clean_tg = query.lstrip('@')
+        # Search by phone, telegram, national_id, email, notes, or name
+        customer = Customer.objects.filter(phone__iexact=query).first()
         if not customer:
-            customer = Customer.objects.filter(phone__iexact=query).first()
+            customer = Customer.objects.filter(telegram_username__iexact=clean_tg).first()
         if not customer:
             customer = Customer.objects.filter(national_id__iexact=query).first()
-        if not customer:
-            customer = Customer.objects.filter(notes__icontains=query).first()
+        if not customer and '@' in query:
+            customer = Customer.objects.filter(email__iexact=query).first()
         if not customer:
             customer = Customer.objects.filter(name__iexact=query).first()
+        if not customer:
+            customer = Customer.objects.filter(notes__icontains=query).first()
 
         if not customer:
-            return Response({"found": False, "message": "No customer found with that email, phone, or National ID."}, status=404)
+            return Response({"found": False, "message": "No customer record found with that Phone, Telegram username, National ID, or Email."}, status=404)
         
         serializer = CustomerSerializer(customer)
         jobs = Job.objects.filter(customer=customer).order_by('-id')
@@ -288,8 +306,8 @@ class CustomerRequestNationalIdOtpView(APIView):
                 print(f"[Email OTP Error]: {mail_err}")
 
         # Mask email for privacy display
-        masked_email = customer.email
-        if "@" in customer.email:
+        masked_email = None
+        if customer.email and "@" in customer.email:
             parts = customer.email.split("@")
             uname = parts[0]
             masked_uname = uname[0] + "***" + (uname[-1] if len(uname) > 1 else "")
@@ -599,13 +617,14 @@ class JobViewSet(viewsets.ModelViewSet):
                 f"Thank you for choosing FieldFlow!"
             )
             
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [job.customer.email],
-                fail_silently=True,
-            )
+            if job.customer.email:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [job.customer.email],
+                    fail_silently=True,
+                )
             
             # Telegram Integration
             if job.customer and job.customer.telegram_username:
