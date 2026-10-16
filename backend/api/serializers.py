@@ -33,7 +33,11 @@ class UserSerializer(serializers.ModelSerializer):
         )
         
         # Create corresponding profile
-        if role == 'technician':
+        if role == 'owner':
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+        elif role == 'technician':
             Technician.objects.create(
                 id=f"t{user.id}",
                 name=name,

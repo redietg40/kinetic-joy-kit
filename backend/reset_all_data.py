@@ -37,31 +37,12 @@ def reset_all():
     inv_item_count, _ = InventoryItem.objects.all().delete()
     print(f"[-] Deleted {inv_item_count} inventory items.")
 
-    # 5. Clean up fake users, keeping or creating the main administrator
-    fake_users = User.objects.exclude(username__in=['redugetahun21@gmail.com', 'admin'])
-    deleted_users_count = fake_users.count()
-    fake_users.delete()
-    print(f"[-] Deleted {deleted_users_count} test/fake user accounts.")
-
-    # Ensure clean admin account exists
-    admin_email = 'redugetahun21@gmail.com'
-    admin_user = User.objects.filter(username=admin_email).first()
-    if not admin_user:
-        admin_user = User.objects.create_superuser(
-            username=admin_email,
-            email=admin_email,
-            password='password123',
-            first_name='Rediet Getahun'
-        )
-        print(f"[+] Created superuser: {admin_email} (password: password123)")
-    else:
-        admin_user.is_staff = True
-        admin_user.is_superuser = True
-        admin_user.save()
-        print(f"[+] Verified superuser: {admin_email}")
+    # 5. Clean up all user accounts so you can register fresh as Business Owner
+    deleted_users_count, _ = User.objects.all().delete()
+    print(f"[-] Deleted all {deleted_users_count} user accounts.")
 
     print("=" * 60)
-    print("DATABASE RESET COMPLETE: Clean slate ready for real customers!")
+    print("DATABASE IS NOW 100% EMPTY: You can now Sign Up fresh as Business Owner!")
     print("=" * 60)
 
 if __name__ == '__main__':
