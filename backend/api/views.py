@@ -1,18 +1,20 @@
 from rest_framework import viewsets, generics, status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.views import APIView
 from django.contrib.auth.models import User
-from .models import Customer, Technician, Job, Invoice
+from django.core.mail import send_mail
 from django.conf import settings
+from .models import Customer, Technician, Job, Invoice
 from .serializers import CustomerSerializer, TechnicianSerializer, JobSerializer, InvoiceSerializer, UserSerializer
 from .telegram_utils import send_telegram_message, send_telegram_photo, resolve_chat_id, KNOWN_USER_MAPPINGS
+import random
+import time
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = UserSerializer
-
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
@@ -206,6 +208,168 @@ class CustomerPortalLookupView(APIView):
             "jobs": job_serializer.data,
             "invoices": invoice_serializer.data
         })
+
+OTP_STORE = {}
+
+class CustomerRequestNationalIdOtpView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        customer_id = request.data.get('customer_id')
+        national_id = (request.data.get('national_id') or '').strip()
+        id_type = request.data.get('id_type', 'National ID (Fayda)')
+        telegram_username = (request.data.get('telegram_username') or '').strip()
+
+        if not customer_id or not national_id:
+            return Response({"error": "Customer ID and National ID / Fayda number are required."}, status=400)
+
+        try:
+            customer = Customer.objects.get(id=customer_id)
+        except Customer.DoesNotExist:
+            return Response({"error": "Customer not found."}, status=404)
+
+        if telegram_username and not customer.telegram_username:
+            customer.telegram_username = telegram_username
+            customer.save()
+
+        # Generate 6-digit verification code
+        code = f"{random.randint(100000, 999999)}"
+        expires_at = time.time() + 900  # 15 minutes validity
+
+        OTP_STORE[customer_id] = {
+            "code": code,
+            "national_id": national_id,
+            "id_type": id_type,
+            "expires_at": expires_at
+        }
+        print(f"[OTP Security] Generated {code} for customer {customer.name} ({customer.email})")
+
+        # 1. Send via Telegram Bot (@FieldFlowApp_bot)
+        telegram_sent = False
+        if customer.telegram_username:
+            try:
+                tg_text = (
+                    f"🛡️ *FieldFlow Identity Verification*\n\n"
+                    f"Hi {customer.name}, your verification code for *{id_type}* is:\n\n"
+                    f"👉 *`{code}`* 👈\n\n"
+                    f"📋 *ID Number:* `{national_id}`\n"
+                    f"⏳ *Valid for:* 15 minutes\n\n"
+                    f"Enter this 6-digit code in the Customer Portal to confirm your identity.\n"
+                    f"Never share this verification code with anyone."
+                )
+                tg_res = send_telegram_message(customer.telegram_username, tg_text)
+                telegram_sent = tg_res.get("success", False)
+            except Exception as tg_err:
+                print(f"[Telegram OTP Error]: {tg_err}")
+
+        # 2. Send via Email
+        email_sent = False
+        if customer.email:
+            try:
+                subject = f"FieldFlow Verification Code: {code}"
+                message = (
+                    f"Hi {customer.name},\n\n"
+                    f"Your 6-digit verification code for {id_type} ({national_id}) is:\n\n"
+                    f"    {code}\n\n"
+                    f"Enter this code in the FieldFlow Customer Portal to verify your identity.\n"
+                    f"This code will expire in 15 minutes.\n\n"
+                    f"Thank you for choosing FieldFlow Services!\n"
+                    f"FieldFlow Security & Trust Team"
+                )
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [customer.email],
+                    fail_silently=True,
+                )
+                email_sent = True
+            except Exception as mail_err:
+                print(f"[Email OTP Error]: {mail_err}")
+
+        # Mask email for privacy display
+        masked_email = customer.email
+        if "@" in customer.email:
+            parts = customer.email.split("@")
+            uname = parts[0]
+            masked_uname = uname[0] + "***" + (uname[-1] if len(uname) > 1 else "")
+            masked_email = f"{masked_uname}@{parts[1]}"
+
+        dest_desc = []
+        if telegram_sent or customer.telegram_username:
+            dest_desc.append("Telegram (@FieldFlowApp_bot)")
+        if customer.email:
+            dest_desc.append(f"Email ({masked_email})")
+
+        return Response({
+            "status": "success",
+            "message": f"Verification code sent to {' and '.join(dest_desc) if dest_desc else 'your account'}!",
+            "code_sent": True,
+            "telegram_sent": telegram_sent,
+            "email_sent": email_sent,
+            "masked_email": masked_email,
+            "has_telegram": bool(customer.telegram_username),
+            "telegram_username": customer.telegram_username
+        })
+
+class CustomerVerifyNationalIdOtpView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        customer_id = request.data.get('customer_id')
+        otp_code = (request.data.get('otp_code') or '').strip()
+
+        if not customer_id or not otp_code:
+            return Response({"error": "Customer ID and verification code are required."}, status=400)
+
+        record = OTP_STORE.get(customer_id)
+        if not record:
+            return Response({"error": "No pending verification code found. Please request a code first."}, status=400)
+
+        if time.time() > record["expires_at"]:
+            OTP_STORE.pop(customer_id, None)
+            return Response({"error": "Verification code has expired. Please request a new code."}, status=400)
+
+        if record["code"] != otp_code:
+            return Response({"error": "Incorrect verification code. Please check your Telegram or Email and try again."}, status=400)
+
+        # Code matched!
+        try:
+            customer = Customer.objects.get(id=customer_id)
+            national_id = record["national_id"]
+            id_type = record["id_type"]
+
+            customer.national_id = national_id
+            from django.utils import timezone
+            timestamp = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+            customer.notes = f"{customer.notes or ''}\n[Verified {id_type} via OTP]: {national_id} (Verified on {timestamp})"
+            customer.save()
+
+            # Clear consumed OTP
+            OTP_STORE.pop(customer_id, None)
+
+            # Send confirmation via Telegram
+            if customer.telegram_username:
+                try:
+                    confirm_msg = (
+                        f"✅ *Identity Verified Successfully!*\n\n"
+                        f"Hi {customer.name}, your *{id_type}* has been officially verified:\n"
+                        f"🆔 *ID Number:* `{national_id}`\n"
+                        f"🛡️ *Digital Paper Trail:* Verified\n\n"
+                        f"Your customer profile is now fully approved for home service appointments!"
+                    )
+                    send_telegram_message(customer.telegram_username, confirm_msg)
+                except Exception as tg_err:
+                    print(f"[Telegram Verify Confirm Error]: {tg_err}")
+
+            return Response({
+                "status": "success",
+                "message": f"{id_type} verified successfully!",
+                "national_id": national_id,
+                "id_type": id_type
+            })
+        except Customer.DoesNotExist:
+            return Response({"error": "Customer not found."}, status=404)
 
 class CustomerVerifyNationalIdView(APIView):
     permission_classes = [AllowAny]

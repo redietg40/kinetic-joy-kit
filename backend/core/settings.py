@@ -137,12 +137,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-# Email Configuration for sending customer notifications
-# For local testing, this prints emails to the terminal console instead of sending them.
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email Configuration for sending customer notifications & verification codes
+import os
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'FieldFlow Security <noreply@fieldflow.et>')
+
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN = '8460071507:AAF1lwV6gqoHDmqUewsqDGW04y7pGW-wWvY'
-DEFAULT_FROM_EMAIL = 'FieldFlow <noreply@fieldflow.et>'
 from datetime import timedelta
 SIMPLE_JWT = { 'ACCESS_TOKEN_LIFETIME': timedelta(days=30) }

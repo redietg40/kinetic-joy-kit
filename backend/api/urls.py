@@ -5,7 +5,8 @@ from .views import (
     CustomerViewSet, TechnicianViewSet, JobViewSet, InvoiceViewSet,
     RegisterView, MeView, BookServiceView, ChapaWebhookView, TelegramWebhookView,
     ChatMessageViewSet, InventoryItemViewSet, JobPartUsageViewSet,
-    CustomerPortalLookupView, CustomerVerifyNationalIdView
+    CustomerPortalLookupView, CustomerVerifyNationalIdView,
+    CustomerRequestNationalIdOtpView, CustomerVerifyNationalIdOtpView
 )
 
 router = DefaultRouter()
@@ -25,6 +26,8 @@ urlpatterns = [
     path('book/', BookServiceView.as_view(), name='public_book'),
     path('customer-portal/lookup/', CustomerPortalLookupView.as_view(), name='customer_portal_lookup'),
     path('customer-portal/verify-id/', CustomerVerifyNationalIdView.as_view(), name='customer_verify_id'),
+    path('customer-portal/request-id-otp/', CustomerRequestNationalIdOtpView.as_view(), name='customer_request_id_otp'),
+    path('customer-portal/verify-id-otp/', CustomerVerifyNationalIdOtpView.as_view(), name='customer_verify_id_otp'),
     path('webhooks/chapa/', ChapaWebhookView.as_view(), name='chapa_webhook'),
     path('webhooks/telegram/', TelegramWebhookView.as_view(), name='telegram_webhook'),
     path('', include(router.urls)),

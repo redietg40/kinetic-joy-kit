@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { friendlyDate, money } from "@/lib/format";
 import { motion } from "framer-motion";
-import { CheckCircle2, ChevronRight, MapPin, Receipt, Wrench, Plus, CalendarClock, User, ArrowRight, ShieldCheck, Lock } from "lucide-react";
+import { 
+  CheckCircle2, ChevronRight, MapPin, Receipt, Wrench, Plus, 
+  CalendarClock, User, ArrowRight, ShieldCheck, Lock, Send, 
+  KeyRound, Smartphone, Mail, RefreshCw, ExternalLink 
+} from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { API_BASE_URL } from "@/api/client";
@@ -24,10 +28,23 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
   const [customerJobs, setCustomerJobs] = useState<any[]>([]);
   const [customerInvoices, setCustomerInvoices] = useState<any[]>([]);
 
+  // 2-Step National ID / Fayda (FAN) OTP Verification
   const [verifyIdOpen, setVerifyIdOpen] = useState(false);
+  const [verifyStep, setVerifyStep] = useState<"enter_id" | "enter_otp">("enter_id");
   const [nationalIdInput, setNationalIdInput] = useState("");
   const [idType, setIdType] = useState("National ID (Fayda)");
-  const [verifyingId, setVerifyingId] = useState(false);
+  const [telegramUsernameInput, setTelegramUsernameInput] = useState("");
+  const [otpCodeInput, setOtpCodeInput] = useState("");
+  const [otpSentInfo, setOtpSentInfo] = useState<{
+    masked_email?: string;
+    telegram_sent?: boolean;
+    email_sent?: boolean;
+    message?: string;
+    telegram_username?: string;
+  } | null>(null);
+  const [requestingOtp, setRequestingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [bookingOpen, setBookingOpen] = useState(false);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
@@ -130,29 +147,99 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
     }
   };
 
-  const handleVerifyId = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nationalIdInput.trim() || !customer?.id) return;
-    setVerifyingId(true);
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleOpenVerifyModal = () => {
+    setNationalIdInput(customer?.national_id || "");
+    setTelegramUsernameInput(customer?.telegram_username || "");
+    setVerifyStep("enter_id");
+    setOtpCodeInput("");
+    setOtpSentInfo(null);
+    setVerifyIdOpen(true);
+  };
+
+  const handleRequestOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const idVal = nationalIdInput.trim();
+    if (!idVal || !customer?.id) {
+      toast.error("Please enter a valid National ID / Fayda number.");
+      return;
+    }
+
+    setRequestingOtp(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/customer-portal/verify-id/`, {
+      const res = await fetch(`${API_BASE_URL}/api/customer-portal/request-id-otp/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          customer_id: customer.id, 
-          national_id: nationalIdInput.trim(),
-          id_type: idType 
+        body: JSON.stringify({
+          customer_id: customer.id,
+          national_id: idVal,
+          id_type: idType,
+          telegram_username: telegramUsernameInput.trim() || undefined
         })
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to verify ID");
-      setCustomer({ ...customer, national_id: data.national_id });
-      setVerifyIdOpen(false);
-      toast.success(`${idType} verified successfully!`);
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send verification code.");
+      }
+
+      setOtpSentInfo(data);
+      setVerifyStep("enter_otp");
+      setResendCooldown(60);
+
+      if (telegramUsernameInput.trim()) {
+        setCustomer((prev: any) => ({ ...prev, telegram_username: telegramUsernameInput.trim() }));
+      }
+
+      toast.success(data.message || "Verification code sent to your Telegram and Email!");
     } catch (err: any) {
-      toast.error(err.message || "Failed to verify ID");
+      toast.error(err.message || "Failed to send verification code. Please try again.");
     } finally {
-      setVerifyingId(false);
+      setRequestingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const codeVal = otpCodeInput.trim();
+    if (!codeVal || codeVal.length < 6 || !customer?.id) {
+      toast.error("Please enter the complete 6-digit verification code.");
+      return;
+    }
+
+    setVerifyingOtp(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/customer-portal/verify-id-otp/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_id: customer.id,
+          otp_code: codeVal
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Incorrect or expired verification code.");
+      }
+
+      setCustomer((prev: any) => ({
+        ...prev,
+        national_id: data.national_id || nationalIdInput.trim()
+      }));
+      setVerifyIdOpen(false);
+      toast.success(`🎉 ${idType} verified successfully! A confirmation message has been sent to your Telegram.`);
+    } catch (err: any) {
+      toast.error(err.message || "Verification failed. Please check the code and try again.");
+    } finally {
+      setVerifyingOtp(false);
     }
   };
 
@@ -382,64 +469,233 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                 {/* National ID Status & Verification Action */}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {customer.national_id ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      Verified ID: {customer.national_id}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        Verified ID: {customer.national_id}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleOpenVerifyModal}
+                        className="h-7 text-xs border-slate-200 text-slate-700 hover:bg-slate-100"
+                      >
+                        Update / Re-verify
+                      </Button>
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
                         <Lock className="w-3 h-3 text-amber-600" />
                         National ID Not Verified
                       </span>
-                      <Dialog open={verifyIdOpen} onOpenChange={setVerifyIdOpen}>
-                        <DialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-7 text-xs border-amber-300 text-amber-800 hover:bg-amber-50">
-                            Verify National ID Now
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                              <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                              Verify National ID / Fayda
-                            </DialogTitle>
-                          </DialogHeader>
-                          <form onSubmit={handleVerifyId} className="space-y-4 pt-3">
-                            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-950 leading-relaxed">
-                              🛡️ <strong>Technician Safety & Identity Assurance:</strong> All home service visits require verified identity. Submitting your government ID establishes a digital paper trail linked to your service record.
-                            </div>
-                            <div>
-                              <Label className="text-sm font-semibold text-slate-700">Select ID Type</Label>
-                              <select
-                                value={idType}
-                                onChange={e => setIdType(e.target.value)}
-                                className="w-full h-10 px-3 border border-slate-200 rounded-md text-sm bg-white mt-1"
-                              >
-                                <option value="National ID (Fayda)">Ethiopian National ID (Fayda - FAN)</option>
-                                <option value="Kebele ID">Resident / Kebele ID</option>
-                                <option value="Passport">Ethiopian Passport</option>
-                                <option value="Driver's License">Driver's License</option>
-                              </select>
-                            </div>
-                            <div>
-                              <Label className="text-sm font-semibold text-slate-700">{idType} Number *</Label>
-                              <Input
-                                required
-                                value={nationalIdInput}
-                                onChange={e => setNationalIdInput(e.target.value)}
-                                placeholder="e.g. FAN-123456789 or Kebele ID"
-                                className="mt-1"
-                              />
-                            </div>
-                            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={verifyingId}>
-                              {verifyingId ? "Verifying..." : `Verify & Save ${idType}`}
-                            </Button>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleOpenVerifyModal}
+                        className="h-7 text-xs border-amber-300 text-amber-800 hover:bg-amber-50"
+                      >
+                        Verify National ID Now
+                      </Button>
                     </div>
                   )}
+
+                  {/* 2-Step OTP Verification Modal */}
+                  <Dialog open={verifyIdOpen} onOpenChange={setVerifyIdOpen}>
+                    <DialogContent className="max-w-md sm:max-w-lg p-6">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-slate-900">
+                          {verifyStep === "enter_id" ? (
+                            <>
+                              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                              Verify National ID / Fayda (FAN)
+                            </>
+                          ) : (
+                            <>
+                              <KeyRound className="w-5 h-5 text-blue-600" />
+                              Enter 6-Digit Verification Code
+                            </>
+                          )}
+                        </DialogTitle>
+                      </DialogHeader>
+
+                      {verifyStep === "enter_id" ? (
+                        <form onSubmit={handleRequestOtp} className="space-y-4 pt-2">
+                          <div className="p-3 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-2xl border border-emerald-100 text-xs text-slate-700 leading-relaxed space-y-1.5">
+                            <div className="flex items-center gap-1.5 font-semibold text-emerald-900">
+                              <span>🇪🇹 Ethiopian Security & Verification:</span>
+                            </div>
+                            <p>
+                              To make verification convenient for Ethiopian users, your 6-digit verification code will be sent to <strong>both Telegram (@FieldFlowApp_bot) and your Email</strong>.
+                            </p>
+                          </div>
+
+                          <div>
+                            <Label className="text-sm font-semibold text-slate-700">Select Document Type</Label>
+                            <select
+                              value={idType}
+                              onChange={(e) => setIdType(e.target.value)}
+                              className="w-full h-10 px-3 border border-slate-200 rounded-md text-sm bg-white mt-1"
+                            >
+                              <option value="National ID (Fayda)">Ethiopian National ID (Fayda - FAN)</option>
+                              <option value="Kebele ID">Resident / Kebele ID</option>
+                              <option value="Passport">Ethiopian Passport</option>
+                              <option value="Driver's License">Driver's License</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <Label className="text-sm font-semibold text-slate-700">{idType} Number *</Label>
+                            <Input
+                              required
+                              value={nationalIdInput}
+                              onChange={(e) => setNationalIdInput(e.target.value)}
+                              placeholder={idType === "National ID (Fayda)" ? "e.g. 3563270542984314 or FAN-..." : "Enter ID number"}
+                              className="mt-1 font-mono text-base"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-semibold text-slate-700">Telegram Username / Chat ID</Label>
+                              <a
+                                href="https://t.me/FieldFlowApp_bot"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                Start @FieldFlowApp_bot <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                            <Input
+                              value={telegramUsernameInput}
+                              onChange={(e) => setTelegramUsernameInput(e.target.value)}
+                              placeholder="@username or numeric chat ID"
+                              className="mt-1"
+                            />
+                            <p className="text-[11px] text-slate-500 mt-1">
+                              Start our bot once so Telegram can instantly deliver your security codes and repair updates.
+                            </p>
+                          </div>
+
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs text-slate-600 space-y-1">
+                            <div className="font-semibold text-slate-800 flex items-center gap-1">
+                              <Mail className="w-3.5 h-3.5 text-slate-500" />
+                              Registered Email Destination:
+                            </div>
+                            <p className="font-mono text-slate-700">{customer?.email || "No email on file"}</p>
+                          </div>
+
+                          <Button
+                            type="submit"
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium h-11"
+                            disabled={requestingOtp}
+                          >
+                            {requestingOtp ? (
+                              <span className="flex items-center gap-2">
+                                <RefreshCw className="w-4 h-4 animate-spin" /> Dispatching Code...
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2">
+                                <Send className="w-4 h-4" /> Send Verification Code (Telegram & Email)
+                              </span>
+                            )}
+                          </Button>
+                        </form>
+                      ) : (
+                        <form onSubmit={handleVerifyOtp} className="space-y-4 pt-2">
+                          <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-100 text-xs text-blue-950 space-y-2">
+                            <p className="font-semibold text-sm text-blue-900">Verification code dispatched!</p>
+                            <div className="space-y-1 text-slate-700 text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <Smartphone className="w-4 h-4 text-blue-600 shrink-0" />
+                                <span>
+                                  <strong>Telegram:</strong> Check <strong>@FieldFlowApp_bot</strong>
+                                  {otpSentInfo?.telegram_username ? ` (@${otpSentInfo.telegram_username.replace('@','')})` : ""}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Mail className="w-4 h-4 text-blue-600 shrink-0" />
+                                <span>
+                                  <strong>Email:</strong> Check your inbox at <strong>{otpSentInfo?.masked_email || customer?.email}</strong>
+                                </span>
+                              </div>
+                            </div>
+                            <a
+                              href="https://t.me/FieldFlowApp_bot"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline pt-1"
+                            >
+                              Open @FieldFlowApp_bot in Telegram <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+
+                          <div>
+                            <Label className="text-sm font-semibold text-slate-700 block text-center mb-1.5">
+                              Enter 6-Digit Code
+                            </Label>
+                            <Input
+                              autoFocus
+                              maxLength={6}
+                              value={otpCodeInput}
+                              onChange={(e) => setOtpCodeInput(e.target.value.replace(/\D/g, ""))}
+                              placeholder="······"
+                              className="h-14 text-center font-mono text-2xl tracking-[0.5em] font-bold border-2 border-slate-300 focus:border-blue-500 rounded-xl"
+                            />
+                            <p className="text-[11px] text-slate-500 text-center mt-1">
+                              Valid for 15 minutes. Enter the exact 6 digits from Telegram or Email.
+                            </p>
+                          </div>
+
+                          <Button
+                            type="submit"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-11"
+                            disabled={verifyingOtp || otpCodeInput.length < 6}
+                          >
+                            {verifyingOtp ? (
+                              <span className="flex items-center gap-2">
+                                <RefreshCw className="w-4 h-4 animate-spin" /> Verifying Code...
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4" /> Confirm & Verify {idType}
+                              </span>
+                            )}
+                          </Button>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setVerifyStep("enter_id")}
+                              className="text-xs text-slate-500 hover:text-slate-800"
+                            >
+                              ← Change ID or Details
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRequestOtp()}
+                              disabled={resendCooldown > 0 || requestingOtp}
+                              className="text-xs text-blue-600 hover:text-blue-800 disabled:text-slate-400"
+                            >
+                              {resendCooldown > 0 ? (
+                                `Resend in ${resendCooldown}s`
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  <RefreshCw className="w-3 h-3" /> Resend Code
+                                </span>
+                              )}
+                            </Button>
+                          </div>
+                        </form>
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto">
