@@ -33,7 +33,7 @@ const fadeUp = {
 
 export function LoginPage({ expired }: { expired?: boolean | undefined }) {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,7 +60,7 @@ export function LoginPage({ expired }: { expired?: boolean | undefined }) {
 
   const loginForm = useForm<LoginData>({ 
     resolver: zodResolver(loginSchema), 
-    defaultValues: { email: "tech@fieldflow.et", password: "password" } 
+    defaultValues: { email: "", password: "" } 
   });
 
   const signupForm = useForm<SignupData>({ 
