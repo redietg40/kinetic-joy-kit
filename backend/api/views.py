@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from .models import Customer, Technician, Job, Invoice
 from django.conf import settings
 from .serializers import CustomerSerializer, TechnicianSerializer, JobSerializer, InvoiceSerializer, UserSerializer
-from .telegram_utils import send_telegram_message, send_telegram_photo, resolve_chat_id
+from .telegram_utils import send_telegram_message, send_telegram_photo, resolve_chat_id, KNOWN_USER_MAPPINGS
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -291,6 +291,75 @@ class ChapaWebhookView(APIView):
             return Response({"status": "Job already processed."})
         except Job.DoesNotExist:
             return Response({"error": "Job not found"}, status=404)
+
+class TelegramWebhookView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        data = request.data
+        message = data.get('message') or data.get('edited_message')
+        if not message:
+            return Response({"status": "no message in update"}, status=200)
+            
+        chat = message.get('chat', {})
+        chat_id = chat.get('id')
+        username = (chat.get('username') or '').strip().lstrip('@')
+        first_name = chat.get('first_name') or ''
+        text = (message.get('text') or '').strip()
+        
+        if not chat_id:
+            return Response({"status": "no chat_id"}, status=200)
+            
+        # 1. Update in-memory mapping cache
+        if username:
+            clean_u = username.lower()
+            KNOWN_USER_MAPPINGS[clean_u] = str(chat_id)
+            
+        # 2. Check for deep linking token e.g. "/start j_30de9539" or "/start job_j_30de9539"
+        job = None
+        if text.startswith('/start'):
+            parts = text.split()
+            if len(parts) > 1:
+                token_arg = parts[1].replace('job_', '')
+                job = Job.objects.filter(id__iexact=token_arg).first()
+                
+        # 3. Match customer in DB and store their numeric Telegram ID!
+        customer = None
+        if job and job.customer:
+            customer = job.customer
+            customer.telegram_username = str(chat_id)
+            customer.save()
+        elif username:
+            from django.db.models import Q
+            customer = Customer.objects.filter(
+                Q(telegram_username__iexact=username) |
+                Q(telegram_username__iexact=f"@{username}")
+            ).first()
+            if customer:
+                customer.telegram_username = str(chat_id)
+                customer.save()
+                
+        # 4. Reply with instant confirmation so user knows they are linked!
+        client_name = customer.name if customer else first_name or 'there'
+        welcome_msg = (
+            f"👋 *Welcome to FieldFlow, {client_name}!*\n\n"
+            f"Your Telegram account has been linked to FieldFlow notifications.\n\n"
+            f"📱 *Your Telegram Chat ID:* `{chat_id}`\n"
+        )
+        if job:
+            welcome_msg += (
+                f"🔧 *Linked Repair Request:* {job.title}\n"
+                f"📊 *Status:* {job.status.replace('_', ' ').capitalize()}\n\n"
+                f"You will receive automatic alerts here as soon as a technician is assigned or your schedule is set!"
+            )
+        else:
+            welcome_msg += (
+                f"Whenever you book a repair or your repair status changes, you will receive real-time updates and receipts here!\n\n"
+                f"Thank you for choosing FieldFlow!"
+            )
+            
+        send_telegram_message(str(chat_id), welcome_msg)
+        return Response({"status": "ok", "chat_id": chat_id, "username": username}, status=200)
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()

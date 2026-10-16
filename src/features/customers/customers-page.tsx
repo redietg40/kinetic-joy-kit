@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
+import type { Customer } from "@/types";
+
 export function CustomersPage() {
   const qc = useQueryClient();
   const { data: customers } = useSuspenseQuery({
@@ -25,6 +27,7 @@ export function CustomersPage() {
   });
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -39,13 +42,27 @@ export function CustomersPage() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["customers"] });
       setOpen(false);
-      toast.success("Customer added successfully!");
+      toast.success(editingCustomer ? "Customer updated successfully!" : "Customer added successfully!");
+      setEditingCustomer(null);
       setFormData({ name: "", email: "", phone: "", address: "", telegram_username: "", notes: "" });
     },
     onError: () => {
-      toast.error("Failed to add customer. Please check the details.");
+      toast.error("Failed to save customer. Please check the details.");
     }
   });
+
+  const handleEdit = (c: Customer) => {
+    setEditingCustomer(c);
+    setFormData({
+      name: c.name,
+      email: c.email,
+      phone: c.phone || "",
+      address: c.address || "",
+      telegram_username: c.telegram_username || "",
+      notes: c.notes || ""
+    });
+    setOpen(true);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +70,7 @@ export function CustomersPage() {
       return toast.error("Full name and Email are required.");
     }
     mutation.mutate({
+      ...(editingCustomer ? { id: editingCustomer.id } : {}),
       name: formData.name.trim(),
       email: formData.email.trim(),
       phone: formData.phone.trim(),
@@ -71,15 +89,24 @@ export function CustomersPage() {
       title="Customers"
       description="Manage customer accounts, addresses, and service histories."
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) {
+            setEditingCustomer(null);
+            setFormData({ name: "", email: "", phone: "", address: "", telegram_username: "", notes: "" });
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => {
+              setEditingCustomer(null);
+              setFormData({ name: "", email: "", phone: "", address: "", telegram_username: "", notes: "" });
+            }}>
               <Plus className="mr-2 h-4 w-4" /> Add customer
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Add New Customer</DialogTitle>
+              <DialogTitle>{editingCustomer ? "Edit Customer Details" : "Add New Customer"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-3">
               <div className="space-y-1.5">
@@ -119,7 +146,7 @@ export function CustomersPage() {
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label>Telegram Username (Optional)</Label>
+                  <Label>Telegram Username or Chat ID (Optional)</Label>
                   <a
                     href="https://t.me/FieldFlowApp_bot"
                     target="_blank"
@@ -132,10 +159,10 @@ export function CustomersPage() {
                 <Input
                   value={formData.telegram_username}
                   onChange={e => setFormData({ ...formData, telegram_username: e.target.value })}
-                  placeholder="@username"
+                  placeholder="@username or Chat ID (e.g. 5179839146)"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Used to automatically dispatch scheduled repair alerts and invoice receipts via Telegram bot.
+                  Numeric Chat ID or @username used for instant repair schedule alerts and receipts.
                 </p>
               </div>
               <div className="space-y-1.5">
@@ -148,7 +175,7 @@ export function CustomersPage() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={mutation.isPending}>
-                {mutation.isPending ? "Saving..." : "Save Customer"}
+                {mutation.isPending ? "Saving..." : editingCustomer ? "Save Changes" : "Save Customer"}
               </Button>
             </form>
           </DialogContent>
@@ -203,13 +230,22 @@ export function CustomersPage() {
                     <BriefcaseBusiness className="w-4 h-4 inline mr-1" />
                     {jobs.filter(j => j.customer_id === c.id).length} jobs
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toast.info(c.notes || "No notes recorded for this customer.")}
-                  >
-                    View notes
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(c)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toast.info(c.notes || "No notes recorded for this customer.")}
+                    >
+                      View notes
+                    </Button>
+                  </div>
                 </div>
               </article>
             ))}
