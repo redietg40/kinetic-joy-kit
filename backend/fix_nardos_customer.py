@@ -2,7 +2,7 @@ import os
 import django
 import uuid
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'fieldflow.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 from api.models import Customer, Job
