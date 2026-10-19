@@ -238,10 +238,43 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
     setVerifyIdOpen(true);
   };
 
+  const VERHOEFF_D = [
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
+    [2, 3, 4, 0, 1, 7, 8, 9, 5, 6],
+    [3, 4, 0, 1, 2, 8, 9, 5, 6, 7],
+    [4, 0, 1, 2, 3, 9, 5, 6, 7, 8],
+    [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
+    [6, 5, 9, 8, 7, 1, 0, 4, 3, 2],
+    [7, 6, 5, 9, 8, 2, 1, 0, 4, 3],
+    [8, 7, 6, 5, 9, 3, 2, 1, 0, 4],
+    [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+  ];
+  const VERHOEFF_P = [
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    [1, 5, 7, 6, 2, 8, 3, 0, 9, 4],
+    [5, 8, 0, 3, 7, 9, 6, 1, 4, 2],
+    [8, 9, 1, 6, 0, 4, 3, 5, 2, 7],
+    [9, 4, 5, 3, 1, 2, 6, 8, 7, 0],
+    [4, 2, 8, 6, 5, 7, 3, 9, 0, 1],
+    [2, 7, 9, 3, 8, 0, 6, 4, 1, 5],
+    [7, 0, 4, 6, 9, 1, 3, 2, 5, 8]
+  ];
+
+  const validateVerhoeff = (numStr: string): boolean => {
+    if (!numStr || !/^\d+$/.test(numStr)) return false;
+    let c = 0;
+    const digits = numStr.split("").reverse();
+    for (let i = 0; i < digits.length; i++) {
+      c = VERHOEFF_D[c][VERHOEFF_P[i % 8][parseInt(digits[i], 10)]];
+    }
+    return c === 0;
+  };
+
   const handleNationalIdInputChange = (val: string) => {
     if (idType === "National ID (Fayda)") {
       // Auto-format into 4-4-4-4 digit groups: e.g. 3563 2705 4298 4314
-      const digits = val.replace(/^(FAN[-:\s]*)/i, "").replace(/[^\d]/g, "").slice(0, 16);
+      const digits = val.replace(/^(FAN|FIN)[-:\s]*/i, "").replace(/[^\d]/g, "").slice(0, 16);
       const chunks = digits.match(/.{1,4}/g);
       const formatted = chunks ? chunks.join(" ") : digits;
       setNationalIdInput(formatted);
@@ -250,11 +283,12 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
     }
   };
 
-  const cleanFanDigits = nationalIdInput.replace(/^(FAN[-:\s]*)/i, "").replace(/[^\d]/g, "");
+  const cleanFanDigits = nationalIdInput.replace(/^(FAN|FIN)[-:\s]*/i, "").replace(/[^\d]/g, "");
   const isFanType = idType === "National ID (Fayda)";
-  const isFanValid = isFanType 
-    ? cleanFanDigits.length === 16 && !/^(\d)\1{15}$/.test(cleanFanDigits) && cleanFanDigits !== "1234567890123456" && cleanFanDigits !== "0123456789012345"
-    : nationalIdInput.trim().length >= 4;
+  const isFanLengthValid = cleanFanDigits.length === 16 || cleanFanDigits.length === 12;
+  const isFanNotDummy = isFanLengthValid && !/^(\d)\1+$/.test(cleanFanDigits) && cleanFanDigits !== "1234567890123456" && cleanFanDigits !== "0123456789012345";
+  const isVerhoeffValid = isFanNotDummy && validateVerhoeff(cleanFanDigits);
+  const isFanValid = isFanType ? isVerhoeffValid : nationalIdInput.trim().length >= 4;
 
   const handleRequestOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -265,21 +299,25 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
     }
 
     if (idType === "National ID (Fayda)") {
-      const cleanFan = idVal.replace(/^(FAN[-:\s]*)/i, "").replace(/[\s-]/g, "");
+      const cleanFan = idVal.replace(/^(FAN|FIN)[-:\s]*/i, "").replace(/[\s-]/g, "");
       if (!/^\d+$/.test(cleanFan)) {
         toast.error("Invalid Fayda Number: Only numeric digits (0-9) are allowed.");
         return;
       }
-      if (cleanFan.length !== 16) {
-        toast.error(`Invalid Fayda ID: Exactly 16 digits are required. You entered ${cleanFan.length} digits.`);
+      if (cleanFan.length !== 16 && cleanFan.length !== 12) {
+        toast.error(`Invalid Fayda ID: Must be 16 digits (FAN) or 12 digits (FIN). You entered ${cleanFan.length} digits.`);
         return;
       }
-      if (/^(\d)\1{15}$/.test(cleanFan)) {
+      if (/^(\d)\1+$/.test(cleanFan)) {
         toast.error("Invalid Fayda Number: Repeating identical digits (e.g. 1111111111111111) are not allowed.");
         return;
       }
       if (cleanFan === "1234567890123456" || cleanFan === "0123456789012345" || cleanFan === "9876543210987654") {
         toast.error("Invalid Fayda Number: Sequential test numbers are not valid Fayda IDs.");
+        return;
+      }
+      if (!validateVerhoeff(cleanFan)) {
+        toast.error("Invalid Fayda Number: This number fails Ethiopia National ID (NIDP) Verhoeff checksum validation.");
         return;
       }
     } else if (idType === "Passport") {
@@ -722,11 +760,11 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                               <Label className="text-sm font-semibold text-slate-700">{idType} Number *</Label>
                               {isFanType && (
                                 <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full font-medium ${
-                                  cleanFanDigits.length === 16 
+                                  isVerhoeffValid 
                                     ? "bg-emerald-100 text-emerald-800 font-bold" 
                                     : "bg-slate-100 text-slate-600"
                                 }`}>
-                                  {cleanFanDigits.length} / 16 digits
+                                  {cleanFanDigits.length} / {cleanFanDigits.length <= 12 && cleanFanDigits.length > 0 ? "12 or 16" : "16"} digits
                                 </span>
                               )}
                             </div>
@@ -741,23 +779,27 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                               <div className="mt-1.5 text-xs">
                                 {cleanFanDigits.length === 0 ? (
                                   <span className="text-slate-500">
-                                    Enter the 16 numeric digits printed on your Ethiopian Fayda card.
+                                    Enter the 16-digit FAN or 12-digit FIN printed on your official Ethiopian Fayda card.
                                   </span>
-                                ) : cleanFanDigits.length < 16 ? (
+                                ) : cleanFanDigits.length < 12 ? (
+                                  <span className="text-amber-600 font-medium flex items-center gap-1">
+                                    ⚠️ {cleanFanDigits.length} digits entered (Needs 16 digits FAN or 12 digits FIN)
+                                  </span>
+                                ) : (cleanFanDigits.length > 12 && cleanFanDigits.length < 16) ? (
                                   <span className="text-amber-600 font-medium flex items-center gap-1">
                                     ⚠️ {cleanFanDigits.length} / 16 digits entered ({16 - cleanFanDigits.length} more needed)
                                   </span>
-                                ) : /^(\d)\1{15}$/.test(cleanFanDigits) ? (
+                                ) : !isFanNotDummy ? (
                                   <span className="text-red-500 font-semibold flex items-center gap-1">
-                                    ❌ Invalid: Repeating digits (e.g. 1111...) are not allowed
+                                    ❌ Invalid: Repeating or sequential test numbers are not genuine Fayda IDs
                                   </span>
-                                ) : (cleanFanDigits === "1234567890123456" || cleanFanDigits === "0123456789012345") ? (
+                                ) : !isVerhoeffValid ? (
                                   <span className="text-red-500 font-semibold flex items-center gap-1">
-                                    ❌ Invalid: Sequential test numbers are not valid Fayda IDs
+                                    ❌ Invalid: This number fails Ethiopia National ID (NIDP) Verhoeff checksum verification
                                   </span>
                                 ) : (
                                   <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                                    <CheckCircle2 className="w-3.5 h-3.5" /> Valid 16-Digit Fayda Format
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> Genuine Ethiopian Fayda ID (NIDP Verified Checksum)
                                   </span>
                                 )}
                               </div>
@@ -812,9 +854,9 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                               <span className="flex items-center gap-2">
                                 <RefreshCw className="w-4 h-4 animate-spin" /> Dispatching Code...
                               </span>
-                            ) : isFanType && cleanFanDigits.length !== 16 ? (
+                            ) : isFanType && !isVerhoeffValid ? (
                               <span className="flex items-center gap-2">
-                                <Lock className="w-4 h-4" /> Enter 16-Digit Fayda to Request Code
+                                <Lock className="w-4 h-4" /> Enter Valid Ethiopian Fayda ID
                               </span>
                             ) : (
                               <span className="flex items-center gap-2">

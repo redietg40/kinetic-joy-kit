@@ -65,22 +65,8 @@ def validate_national_id_format(id_type, id_value):
     type_lower = (id_type or '').lower()
     import re
     if "fayda" in type_lower or "national id" in type_lower or "fan" in type_lower:
-        clean = re.sub(r'^(FAN[-:\s]*)', '', val, flags=re.IGNORECASE)
-        clean = re.sub(r'[\s\-]', '', clean)
-
-        if not clean.isdigit():
-            return False, "Invalid Fayda Number: A Fayda ID must contain numeric digits only (0-9)."
-
-        if len(clean) != 16:
-            return False, f"Invalid Fayda Identification Number (FAN). A valid Ethiopian Fayda ID must be exactly 16 digits (you entered {len(clean)} digits)."
-
-        if len(set(clean)) == 1:
-            return False, "Invalid Fayda Number: Repeating identical digits (e.g. 1111111111111111) are not allowed."
-
-        if clean in ("1234567890123456", "0123456789012345", "9876543210987654"):
-            return False, "Invalid Fayda Number: Sequential test numbers are not valid Fayda IDs."
-
-        return True, clean
+        from api.fayda_service import validate_fayda_number
+        return validate_fayda_number(val)
 
     elif "passport" in type_lower:
         clean = re.sub(r'[\s\-]', '', val)
