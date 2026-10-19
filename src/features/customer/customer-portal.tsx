@@ -25,6 +25,7 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
   const [errorMessage, setErrorMessage] = useState("");
 
   const [customer, setCustomer] = useState<any>(null);
+  const [matchingProfiles, setMatchingProfiles] = useState<any[]>([]);
   const [customerJobs, setCustomerJobs] = useState<any[]>([]);
   const [customerInvoices, setCustomerInvoices] = useState<any[]>([]);
 
@@ -70,17 +71,19 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
 
     setLookingUp(true);
     setErrorMessage("");
+    setMatchingProfiles([]);
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/customer-portal/lookup/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query, email: query, phone: query })
+        body: JSON.stringify({ query: query, email: query, phone: query, name: query })
       });
 
       if (!res.ok) {
         setCustomer(null);
-        setErrorMessage("No existing record found for this Phone number, Telegram username, or National ID. If you are a new client, please submit a service request below!");
+        setMatchingProfiles([]);
+        setErrorMessage("No existing record found for this Name, Phone number, Telegram username, or National ID. If you are a new client, please submit a service request below!");
         // Pre-fill booking form based on format
         if (query.includes("@")) {
           if (query.startsWith("@")) {
@@ -90,17 +93,55 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
           }
         } else if (/^\+?\d+$/.test(query)) {
           bookingForm.setValue("phone", query);
+        } else {
+          bookingForm.setValue("name", query);
         }
         return;
       }
 
       const data = await res.json();
+      if (data.multiple && data.profiles && data.profiles.length > 1) {
+        setMatchingProfiles(data.profiles);
+        setCustomer(null);
+        toast.info(`Found ${data.profiles.length} profiles linked to this contact. Please select yours.`);
+        return;
+      }
+
+      setMatchingProfiles([]);
       setCustomer(data.customer);
       setCustomerJobs(data.jobs || []);
       setCustomerInvoices(data.invoices || []);
       toast.success(`Welcome back, ${data.customer.name}!`);
     } catch {
       setErrorMessage("Unable to connect to the server. Please try again.");
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
+  const handleSelectProfile = async (profileId: string) => {
+    setLookingUp(true);
+    setErrorMessage("");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/customer-portal/lookup/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customer_id: profileId })
+      });
+
+      if (!res.ok) {
+        toast.error("Could not load selected profile. Please try again.");
+        return;
+      }
+
+      const data = await res.json();
+      setMatchingProfiles([]);
+      setCustomer(data.customer);
+      setCustomerJobs(data.jobs || []);
+      setCustomerInvoices(data.invoices || []);
+      toast.success(`Welcome back, ${data.customer.name}!`);
+    } catch {
+      toast.error("Unable to load profile. Please try again.");
     } finally {
       setLookingUp(false);
     }
@@ -144,9 +185,13 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
       } else {
         toast.success("Service request submitted successfully!");
         setBookingOpen(false);
-        // Reload portal view for this email
-        setEmailInput(formData.email || customer?.email);
-        void handleLookup({ preventDefault: () => {} } as any);
+        // Reload portal view for this specific customer
+        if (resData.customer_id) {
+          void handleSelectProfile(resData.customer_id);
+        } else {
+          setEmailInput(formData.name || formData.phone || formData.email || customer?.name || "");
+          void handleLookup({ preventDefault: () => {} } as any);
+        }
       }
     } catch {
       toast.error("Could not submit request. Please try again.");
@@ -423,13 +468,13 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
               >
                 <form onSubmit={handleLookup} className="space-y-4">
                   <div>
-                    <Label className="text-sm font-semibold text-slate-700">Lookup by Phone, Telegram Username, National ID, or Email</Label>
+                    <Label className="text-sm font-semibold text-slate-700">Lookup by Full Name, Phone, Telegram, National ID, or Email</Label>
                     <Input
                       type="text"
                       required
                       value={emailInput}
                       onChange={e => setEmailInput(e.target.value)}
-                      placeholder="e.g. 0911..., @telegram, FAN-..., or email"
+                      placeholder="e.g. Nardos Tilaye, 0911..., @telegram, FAN-..."
                       className="mt-2 h-12 text-base"
                     />
                   </div>
@@ -437,6 +482,54 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                     {lookingUp ? "Searching..." : "View My Portal"} <ChevronRight className="w-4 h-4 ml-2" />
                   </Button>
                 </form>
+
+                {matchingProfiles.length > 0 && (
+                  <div className="mt-6 space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-slate-800">
+                        Select Your Account ({matchingProfiles.length} found)
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setMatchingProfiles([])}
+                        className="text-xs text-slate-500 hover:text-slate-800 underline"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Multiple client profiles match your lookup. Click your name to open your portal:
+                    </p>
+                    <div className="space-y-2 pt-1">
+                      {matchingProfiles.map((p) => (
+                        <div
+                          key={p.id}
+                          onClick={() => handleSelectProfile(p.id)}
+                          className="p-3 bg-white hover:bg-blue-50/70 border border-slate-200 hover:border-blue-300 rounded-xl cursor-pointer transition-all flex items-center justify-between group shadow-sm"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-900 group-hover:text-blue-700 text-sm">
+                                {p.name}
+                              </span>
+                              {p.national_id && (
+                                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-mono font-medium">
+                                  ID: {p.national_id}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {p.address ? `${p.address} · ` : ""}{p.phone || p.email || "No contact"} · {p.jobs_count} job{p.jobs_count === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                          <Button size="sm" variant="outline" className="h-8 text-xs border-blue-200 text-blue-700 bg-white group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            Open <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {errorMessage && (
                   <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs leading-relaxed text-center">
@@ -754,7 +847,7 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                     </form>
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" onClick={() => { setCustomer(null); setEmailInput(""); }}>
+                <Button variant="outline" onClick={() => { setCustomer(null); setEmailInput(""); setMatchingProfiles([]); }}>
                   Sign Out
                 </Button>
               </div>

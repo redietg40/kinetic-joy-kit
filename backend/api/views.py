@@ -26,10 +26,10 @@ class MeView(APIView):
         role = "Owner"
         if Technician.objects.filter(email=user.email).exists():
             role = "Technician"
-            name = Technician.objects.get(email=user.email).name
+            name = Technician.objects.filter(email=user.email).first().name
         elif Customer.objects.filter(email=user.email).exists():
             role = "Customer"
-            name = Customer.objects.get(email=user.email).name
+            name = Customer.objects.filter(email=user.email).first().name
         else:
             if user.first_name and user.first_name.strip():
                 name = user.first_name.strip()
@@ -78,24 +78,32 @@ class BookServiceView(APIView):
             # Assign to business owner
             owner = User.objects.filter(is_superuser=True).first() or User.objects.first()
 
-            # Find existing customer by phone, telegram, national_id, or email
+            # A booking belongs to an existing customer ONLY if the Name matches AND at least one contact/ID matches.
+            # If the Name is different (e.g. "Nardos Tilaye" vs "Dawit Bekele"), it is a brand new customer!
+            name = (data.get('name') or '').strip()
             import uuid
             customer = None
-            if phone:
-                customer = Customer.objects.filter(phone=phone).first()
-            if not customer and telegram_username:
-                customer = Customer.objects.filter(telegram_username__iexact=telegram_username).first()
-            if not customer and national_id:
-                customer = Customer.objects.filter(national_id__iexact=national_id).first()
-            if not customer and email:
-                customer = Customer.objects.filter(email__iexact=email).first()
+            if name:
+                from django.db.models import Q
+                contact_q = Q()
+                if phone:
+                    contact_q |= Q(phone=phone)
+                if email:
+                    contact_q |= Q(email__iexact=email)
+                if telegram_username:
+                    contact_q |= Q(telegram_username__iexact=telegram_username)
+                if national_id:
+                    contact_q |= Q(national_id__iexact=national_id)
+
+                if contact_q:
+                    customer = Customer.objects.filter(Q(name__iexact=name) & contact_q).order_by('-created_at').first()
 
             audit_note = f"National ID/Fayda: {national_id or 'N/A'} | Landmark: {landmark or 'N/A'} | IP: {client_ip}"
             
             if not customer:
                 customer = Customer.objects.create(
                     id=f"c_{uuid.uuid4().hex[:8]}",
-                    name=data.get('name', 'Client'),
+                    name=name or 'Client',
                     phone=phone or None,
                     email=email or None,
                     address=data.get('address', 'Addis Ababa'),
@@ -181,6 +189,8 @@ class BookServiceView(APIView):
             return Response({
                 "status": "success",
                 "job_id": job.id,
+                "customer_id": customer.id,
+                "customer_name": customer.name,
                 "checkout_url": checkout_url,
                 "message": "Please complete the booking deposit to confirm your request."
             })
@@ -193,26 +203,56 @@ class CustomerPortalLookupView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        query = (request.data.get('email') or request.data.get('query') or request.data.get('phone') or '').strip()
-        if not query:
-            return Response({"error": "Phone number, Telegram username, National ID, or Email is required."}, status=400)
-        
+        query = (request.data.get('email') or request.data.get('query') or request.data.get('phone') or request.data.get('name') or '').strip()
+        selected_customer_id = (request.data.get('customer_id') or '').strip()
+        if not query and not selected_customer_id:
+            return Response({"error": "Name, Phone number, Telegram username, National ID, or Email is required."}, status=400)
+
+        customer = None
+        if selected_customer_id:
+            customer = Customer.objects.filter(id=selected_customer_id).first()
+
         clean_tg = query.lstrip('@')
-        # Search by phone, telegram, national_id, email, notes, or name
-        customer = Customer.objects.filter(phone__iexact=query).first()
-        if not customer:
-            customer = Customer.objects.filter(telegram_username__iexact=clean_tg).first()
-        if not customer:
-            customer = Customer.objects.filter(national_id__iexact=query).first()
-        if not customer and '@' in query:
-            customer = Customer.objects.filter(email__iexact=query).first()
-        if not customer:
-            customer = Customer.objects.filter(name__iexact=query).first()
-        if not customer:
-            customer = Customer.objects.filter(notes__icontains=query).first()
+
+        # 1. Exact match by Name directly (e.g. searching "Nardos Tilaye" directly opens Nardos Tilaye!)
+        if not customer and query:
+            customer = Customer.objects.filter(name__iexact=query).order_by('-created_at').first()
+
+        # 2. If not matched by exact name, search across phone, telegram, national_id, email, or partial name
+        if not customer and query:
+            from django.db.models import Q
+            q_filter = Q(phone__iexact=query) | Q(telegram_username__iexact=clean_tg) | Q(national_id__iexact=query)
+            if '@' in query:
+                q_filter |= Q(email__iexact=query)
+            q_filter |= Q(name__icontains=query)
+
+            matching_customers = list(Customer.objects.filter(q_filter).order_by('-created_at')[:10])
+
+            if len(matching_customers) == 1:
+                customer = matching_customers[0]
+            elif len(matching_customers) > 1:
+                # If multiple customers share this email/phone (e.g. testing with the same email),
+                # return all matching profiles so user can choose who to log in as!
+                profiles = []
+                for mc in matching_customers:
+                    profiles.append({
+                        "id": mc.id,
+                        "name": mc.name,
+                        "email": mc.email,
+                        "phone": mc.phone,
+                        "address": mc.address,
+                        "national_id": mc.national_id,
+                        "jobs_count": Job.objects.filter(customer=mc).count()
+                    })
+                return Response({
+                    "found": True,
+                    "multiple": True,
+                    "profiles": profiles,
+                    "message": f"Found {len(profiles)} client accounts. Please select your profile:"
+                })
 
         if not customer:
-            return Response({"found": False, "message": "No customer record found with that Phone, Telegram username, National ID, or Email."}, status=404)
+            return Response({"found": False, "message": "No customer record found with that Name, Phone, Telegram username, National ID, or Email."}, status=404)
         
         serializer = CustomerSerializer(customer)
         jobs = Job.objects.filter(customer=customer).order_by('-id')
@@ -222,6 +262,7 @@ class CustomerPortalLookupView(APIView):
         
         return Response({
             "found": True,
+            "multiple": False,
             "customer": serializer.data,
             "jobs": job_serializer.data,
             "invoices": invoice_serializer.data

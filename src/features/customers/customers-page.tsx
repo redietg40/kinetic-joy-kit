@@ -66,8 +66,8 @@ export function CustomersPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim()) {
-      return toast.error("Full name and Email are required.");
+    if (!formData.name.trim()) {
+      return toast.error("Full name is required.");
     }
     mutation.mutate({
       ...(editingCustomer ? { id: editingCustomer.id } : {}),
@@ -81,7 +81,7 @@ export function CustomersPage() {
   };
 
   const filtered = customers.filter(c =>
-    `${c.name} ${c.email} ${c.phone} ${c.address}`.toLowerCase().includes(search.toLowerCase())
+    `${c.name || ''} ${c.email || ''} ${c.phone || ''} ${c.address || ''}`.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -119,13 +119,12 @@ export function CustomersPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Email Address *</Label>
+                <Label>Email Address (Optional)</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="client@example.com"
-                  required
+                  placeholder="client@example.com (optional)"
                 />
               </div>
               <div className="space-y-1.5">
