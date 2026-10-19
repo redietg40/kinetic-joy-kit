@@ -57,6 +57,54 @@ class MeView(APIView):
             user.save()
         return self.get(request)
 
+def validate_national_id_format(id_type, id_value):
+    val = (id_value or '').strip()
+    if not val:
+        return False, "National ID / Fayda number is required."
+
+    type_lower = (id_type or '').lower()
+    import re
+    if "fayda" in type_lower or "national id" in type_lower or "fan" in type_lower:
+        clean = re.sub(r'^(FAN[-:\s]*)', '', val, flags=re.IGNORECASE)
+        clean = re.sub(r'[\s\-]', '', clean)
+
+        if not clean.isdigit():
+            return False, "Invalid Fayda Number: A Fayda ID must contain numeric digits only (0-9)."
+
+        if len(clean) != 16:
+            return False, f"Invalid Fayda Identification Number (FAN). A valid Ethiopian Fayda ID must be exactly 16 digits (you entered {len(clean)} digits)."
+
+        if len(set(clean)) == 1:
+            return False, "Invalid Fayda Number: Repeating identical digits (e.g. 1111111111111111) are not allowed."
+
+        if clean in ("1234567890123456", "0123456789012345", "9876543210987654"):
+            return False, "Invalid Fayda Number: Sequential test numbers are not valid Fayda IDs."
+
+        return True, clean
+
+    elif "passport" in type_lower:
+        clean = re.sub(r'[\s\-]', '', val)
+        if not re.fullmatch(r'[A-Za-z]\d{7,8}', clean):
+            return False, "Invalid Passport Number. Ethiopian passport numbers start with 1 letter followed by 7-8 digits (e.g. EP1234567)."
+        return True, clean.upper()
+
+    elif "kebele" in type_lower:
+        clean = re.sub(r'\s+', ' ', val).strip()
+        if len(clean) < 4 or len(clean) > 30:
+            return False, "Invalid Kebele ID: Must be between 4 and 30 characters."
+        return True, clean
+
+    elif "driver" in type_lower:
+        clean = val.replace(' ', '')
+        if len(clean) < 5 or len(clean) > 25:
+            return False, "Invalid Driver's License: Must be between 5 and 25 characters."
+        return True, clean
+
+    if len(val) < 4:
+        return False, "Invalid ID Number: Must be at least 4 characters long."
+
+    return True, val
+
 class BookServiceView(APIView):
     permission_classes = [AllowAny]
 
@@ -68,6 +116,15 @@ class BookServiceView(APIView):
             telegram_username = (data.get('telegram_username') or '').strip().lstrip('@')
             national_id = (data.get('national_id') or '').strip()
             landmark = (data.get('landmark') or '').strip()
+
+            if national_id:
+                import re
+                clean_test = re.sub(r'^(FAN[-:\s]*)', '', national_id, flags=re.IGNORECASE).replace(' ', '').replace('-', '')
+                if clean_test.isdigit() or national_id.upper().startswith('FAN'):
+                    is_valid, validated_or_err = validate_national_id_format("National ID (Fayda)", national_id)
+                    if not is_valid:
+                        return Response({"error": validated_or_err}, status=400)
+                    national_id = validated_or_err
 
             if not phone and not telegram_username and not email:
                 return Response({"error": "Please provide a Phone Number or Telegram username so our team can reach you."}, status=400)
@@ -319,12 +376,19 @@ class CustomerRequestNationalIdOtpView(APIView):
 
     def post(self, request):
         customer_id = request.data.get('customer_id')
-        national_id = (request.data.get('national_id') or '').strip()
+        raw_national_id = (request.data.get('national_id') or '').strip()
         id_type = request.data.get('id_type', 'National ID (Fayda)')
         telegram_username = (request.data.get('telegram_username') or '').strip()
 
-        if not customer_id or not national_id:
+        if not customer_id or not raw_national_id:
             return Response({"error": "Customer ID and National ID / Fayda number are required."}, status=400)
+
+        # Strictly validate the National ID / FAN format before issuing any verification code
+        is_valid, validated_or_err = validate_national_id_format(id_type, raw_national_id)
+        if not is_valid:
+            return Response({"error": validated_or_err}, status=400)
+
+        national_id = validated_or_err
 
         try:
             customer = Customer.objects.get(id=customer_id)
@@ -494,11 +558,17 @@ class CustomerVerifyNationalIdView(APIView):
 
     def post(self, request):
         customer_id = request.data.get('customer_id')
-        national_id = (request.data.get('national_id') or '').strip()
+        raw_national_id = (request.data.get('national_id') or '').strip()
         id_type = request.data.get('id_type', 'National ID (Fayda)')
-        if not customer_id or not national_id:
+        if not customer_id or not raw_national_id:
             return Response({"error": "Customer ID and National ID / Fayda are required."}, status=400)
         
+        is_valid, validated_or_err = validate_national_id_format(id_type, raw_national_id)
+        if not is_valid:
+            return Response({"error": validated_or_err}, status=400)
+
+        national_id = validated_or_err
+
         try:
             customer = Customer.objects.get(id=customer_id)
             customer.national_id = national_id

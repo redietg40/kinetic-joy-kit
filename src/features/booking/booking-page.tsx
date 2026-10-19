@@ -13,7 +13,15 @@ const bookingSchema = z.object({
   name: z.string().min(2, "Full name is required"),
   email: z.string().email("Please enter a valid email if provided").optional().or(z.literal("")),
   phone: z.string().min(9, "Phone number is required"),
-  national_id: z.string().min(4, "National ID / Fayda / Kebele ID is required for verification"),
+  national_id: z.string().min(4, "National ID / Fayda / Kebele ID is required for verification").refine((val) => {
+    const cleanFan = val.replace(/^(FAN[-:\s]*)/i, "").replace(/[\s-]/g, "");
+    if (/^FAN/i.test(val) || (/^\d+$/.test(cleanFan) && cleanFan.length >= 10)) {
+      return cleanFan.length === 16 && !/^(\d)\1{15}$/.test(cleanFan) && cleanFan !== "1234567890123456";
+    }
+    return true;
+  }, {
+    message: "Invalid Ethiopian Fayda (FAN) number: Must be exactly 16 numeric digits.",
+  }),
   address: z.string().min(5, "Address is required"),
   landmark: z.string().min(3, "Nearest landmark or building is required"),
   telegram_username: z.string().optional(),
@@ -134,7 +142,7 @@ export function BookingPage() {
                 <Lock className="w-2.5 h-2.5" /> Safety Check
               </span>
             </div>
-            <Input className="mt-1" placeholder="e.g. FAN-123456 or Kebele ID" {...form.register("national_id")} />
+            <Input className="mt-1" placeholder="e.g. 16-digit Fayda (FAN) or Kebele ID" {...form.register("national_id")} />
             {form.formState.errors.national_id && <p className="text-xs text-red-500 mt-1">{form.formState.errors.national_id.message}</p>}
           </div>
           

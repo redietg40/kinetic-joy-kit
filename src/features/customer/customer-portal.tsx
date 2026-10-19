@@ -150,6 +150,25 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
   };
 
   const handleBookService = async (formData: any) => {
+    const rawNationalId = (formData.national_id || "").trim();
+    if (rawNationalId) {
+      const cleanFan = rawNationalId.replace(/^(FAN[-:\s]*)/i, "").replace(/[\s-]/g, "");
+      if (/^FAN/i.test(rawNationalId) || (/^\d+$/.test(cleanFan) && cleanFan.length >= 10)) {
+        if (cleanFan.length !== 16) {
+          toast.error(`Invalid Fayda ID: Exactly 16 digits are required. You entered ${cleanFan.length} digits.`);
+          return;
+        }
+        if (/^(\d)\1{15}$/.test(cleanFan)) {
+          toast.error("Invalid Fayda Number: Repeating identical digits (e.g. 1111111111111111) are not allowed.");
+          return;
+        }
+        if (cleanFan === "1234567890123456" || cleanFan === "0123456789012345") {
+          toast.error("Invalid Fayda Number: Sequential test numbers are not valid Fayda IDs.");
+          return;
+        }
+      }
+    }
+
     setBookingSubmitting(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/book/`, {
@@ -219,22 +238,73 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
     setVerifyIdOpen(true);
   };
 
+  const handleNationalIdInputChange = (val: string) => {
+    if (idType === "National ID (Fayda)") {
+      // Auto-format into 4-4-4-4 digit groups: e.g. 3563 2705 4298 4314
+      const digits = val.replace(/^(FAN[-:\s]*)/i, "").replace(/[^\d]/g, "").slice(0, 16);
+      const chunks = digits.match(/.{1,4}/g);
+      const formatted = chunks ? chunks.join(" ") : digits;
+      setNationalIdInput(formatted);
+    } else {
+      setNationalIdInput(val);
+    }
+  };
+
+  const cleanFanDigits = nationalIdInput.replace(/^(FAN[-:\s]*)/i, "").replace(/[^\d]/g, "");
+  const isFanType = idType === "National ID (Fayda)";
+  const isFanValid = isFanType 
+    ? cleanFanDigits.length === 16 && !/^(\d)\1{15}$/.test(cleanFanDigits) && cleanFanDigits !== "1234567890123456" && cleanFanDigits !== "0123456789012345"
+    : nationalIdInput.trim().length >= 4;
+
   const handleRequestOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const idVal = nationalIdInput.trim();
     if (!idVal || !customer?.id) {
-      toast.error("Please enter a valid National ID / Fayda number.");
+      toast.error("Please enter your National ID / Fayda number.");
+      return;
+    }
+
+    if (idType === "National ID (Fayda)") {
+      const cleanFan = idVal.replace(/^(FAN[-:\s]*)/i, "").replace(/[\s-]/g, "");
+      if (!/^\d+$/.test(cleanFan)) {
+        toast.error("Invalid Fayda Number: Only numeric digits (0-9) are allowed.");
+        return;
+      }
+      if (cleanFan.length !== 16) {
+        toast.error(`Invalid Fayda ID: Exactly 16 digits are required. You entered ${cleanFan.length} digits.`);
+        return;
+      }
+      if (/^(\d)\1{15}$/.test(cleanFan)) {
+        toast.error("Invalid Fayda Number: Repeating identical digits (e.g. 1111111111111111) are not allowed.");
+        return;
+      }
+      if (cleanFan === "1234567890123456" || cleanFan === "0123456789012345" || cleanFan === "9876543210987654") {
+        toast.error("Invalid Fayda Number: Sequential test numbers are not valid Fayda IDs.");
+        return;
+      }
+    } else if (idType === "Passport") {
+      const cleanPassport = idVal.replace(/[\s-]/g, "");
+      if (!/^[A-Za-z]\d{7,8}$/.test(cleanPassport)) {
+        toast.error("Invalid Passport Number: Must start with 1 letter followed by 7-8 digits (e.g. EP1234567).");
+        return;
+      }
+    } else if (idVal.length < 4) {
+      toast.error("Invalid ID Number: Must be at least 4 characters long.");
       return;
     }
 
     setRequestingOtp(true);
     try {
+      const cleanIdToSend = idType === "National ID (Fayda)" 
+        ? idVal.replace(/^(FAN[-:\s]*)/i, "").replace(/[\s-]/g, "")
+        : idVal;
+
       const res = await fetch(`${API_BASE_URL}/api/customer-portal/request-id-otp/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_id: customer.id,
-          national_id: idVal,
+          national_id: cleanIdToSend,
           id_type: idType,
           telegram_username: telegramUsernameInput.trim() || undefined
         })
@@ -648,14 +718,50 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                           </div>
 
                           <div>
-                            <Label className="text-sm font-semibold text-slate-700">{idType} Number *</Label>
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-semibold text-slate-700">{idType} Number *</Label>
+                              {isFanType && (
+                                <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full font-medium ${
+                                  cleanFanDigits.length === 16 
+                                    ? "bg-emerald-100 text-emerald-800 font-bold" 
+                                    : "bg-slate-100 text-slate-600"
+                                }`}>
+                                  {cleanFanDigits.length} / 16 digits
+                                </span>
+                              )}
+                            </div>
                             <Input
                               required
                               value={nationalIdInput}
-                              onChange={(e) => setNationalIdInput(e.target.value)}
-                              placeholder={idType === "National ID (Fayda)" ? "e.g. 3563270542984314 or FAN-..." : "Enter ID number"}
-                              className="mt-1 font-mono text-base"
+                              onChange={(e) => handleNationalIdInputChange(e.target.value)}
+                              placeholder={idType === "National ID (Fayda)" ? "e.g. 3563 2705 4298 4314" : "Enter ID number"}
+                              className="mt-1 font-mono text-base tracking-wider"
                             />
+                            {isFanType && (
+                              <div className="mt-1.5 text-xs">
+                                {cleanFanDigits.length === 0 ? (
+                                  <span className="text-slate-500">
+                                    Enter the 16 numeric digits printed on your Ethiopian Fayda card.
+                                  </span>
+                                ) : cleanFanDigits.length < 16 ? (
+                                  <span className="text-amber-600 font-medium flex items-center gap-1">
+                                    ⚠️ {cleanFanDigits.length} / 16 digits entered ({16 - cleanFanDigits.length} more needed)
+                                  </span>
+                                ) : /^(\d)\1{15}$/.test(cleanFanDigits) ? (
+                                  <span className="text-red-500 font-semibold flex items-center gap-1">
+                                    ❌ Invalid: Repeating digits (e.g. 1111...) are not allowed
+                                  </span>
+                                ) : (cleanFanDigits === "1234567890123456" || cleanFanDigits === "0123456789012345") ? (
+                                  <span className="text-red-500 font-semibold flex items-center gap-1">
+                                    ❌ Invalid: Sequential test numbers are not valid Fayda IDs
+                                  </span>
+                                ) : (
+                                  <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> Valid 16-Digit Fayda Format
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           <div>
@@ -700,11 +806,15 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                           <Button
                             type="submit"
                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium h-11"
-                            disabled={requestingOtp}
+                            disabled={requestingOtp || !isFanValid}
                           >
                             {requestingOtp ? (
                               <span className="flex items-center gap-2">
                                 <RefreshCw className="w-4 h-4 animate-spin" /> Dispatching Code...
+                              </span>
+                            ) : isFanType && cleanFanDigits.length !== 16 ? (
+                              <span className="flex items-center gap-2">
+                                <Lock className="w-4 h-4" /> Enter 16-Digit Fayda to Request Code
                               </span>
                             ) : (
                               <span className="flex items-center gap-2">
