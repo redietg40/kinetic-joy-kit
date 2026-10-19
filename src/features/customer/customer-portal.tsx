@@ -40,6 +40,8 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
     masked_email?: string;
     telegram_sent?: boolean;
     email_sent?: boolean;
+    email_error?: string;
+    otp_hint?: string;
     message?: string;
     telegram_username?: string;
   } | null>(null);
@@ -727,11 +729,38 @@ export function CustomerPortal({ initialTab = "book" }: { initialTab?: "book" | 
                                 <div className="flex items-center gap-1.5">
                                   <Mail className="w-4 h-4 text-blue-600 shrink-0" />
                                   <span>
-                                    <strong>Email:</strong> Check inbox at <strong>{otpSentInfo?.masked_email || customer?.email}</strong>
+                                    <strong>Email:</strong> {otpSentInfo?.email_sent ? "Check inbox at " : "Status for "} 
+                                    <strong>{otpSentInfo?.masked_email || customer?.email}</strong>
+                                    {otpSentInfo?.email_sent && <span className="text-emerald-700 ml-1 font-semibold">✓ Dispatched</span>}
                                   </span>
                                 </div>
                               )}
                             </div>
+
+                            {otpSentInfo?.email_error && (
+                              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] leading-relaxed">
+                                <span className="font-semibold">⚠️ Email SMTP Notice:</span> {otpSentInfo.email_error}
+                              </div>
+                            )}
+
+                            {otpSentInfo?.otp_hint && !otpSentInfo?.email_sent && (
+                              <div className="p-2.5 bg-blue-100/70 border border-blue-200 rounded-xl text-blue-900 flex items-center justify-between">
+                                <div>
+                                  <p className="text-[10px] uppercase font-bold text-blue-700">Security Verification Code</p>
+                                  <p className="font-mono text-base font-bold tracking-widest text-blue-900">{otpSentInfo.otp_hint}</p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setOtpCodeInput(otpSentInfo.otp_hint || "")}
+                                  className="h-8 text-xs bg-white text-blue-700 border-blue-300 hover:bg-blue-50 font-semibold"
+                                >
+                                  Auto-Fill Code
+                                </Button>
+                              </div>
+                            )}
+
                             <a
                               href="https://t.me/FieldFlowApp_bot"
                               target="_blank"

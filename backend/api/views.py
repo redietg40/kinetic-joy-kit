@@ -367,6 +367,7 @@ class CustomerRequestNationalIdOtpView(APIView):
 
         # 2. Send via Email
         email_sent = False
+        email_error = None
         if customer.email:
             try:
                 subject = f"FieldFlow Verification Code: {code}"
@@ -379,16 +380,24 @@ class CustomerRequestNationalIdOtpView(APIView):
                     f"Thank you for choosing FieldFlow Services!\n"
                     f"FieldFlow Security & Trust Team"
                 )
+                from django.core.mail import send_mail
+                from django.conf import settings
                 send_mail(
                     subject,
                     message,
                     settings.DEFAULT_FROM_EMAIL,
                     [customer.email],
-                    fail_silently=True,
+                    fail_silently=False,
                 )
                 email_sent = True
             except Exception as mail_err:
-                print(f"[Email OTP Error]: {mail_err}")
+                err_str = str(mail_err)
+                print(f"[Email OTP Error]: {err_str}")
+                if "BadCredentials" in err_str or "Username and Password not accepted" in err_str:
+                    email_error = "Google SMTP authentication failed (BadCredentials). Please check your Gmail App Password."
+                else:
+                    email_error = f"Email delivery failed: {err_str}"
+                email_sent = False
 
         # Mask email for privacy display
         masked_email = None
@@ -401,18 +410,24 @@ class CustomerRequestNationalIdOtpView(APIView):
         dest_desc = []
         if telegram_sent or customer.telegram_username:
             dest_desc.append("Telegram (@FieldFlowApp_bot)")
-        if customer.email:
+        if email_sent and customer.email:
             dest_desc.append(f"Email ({masked_email})")
+
+        msg = f"Verification code sent to {' and '.join(dest_desc)}!" if dest_desc else "Verification code generated!"
+        if email_error and not email_sent:
+            msg += " (Note: Email sending encountered an SMTP credential issue)."
 
         return Response({
             "status": "success",
-            "message": f"Verification code sent to {' and '.join(dest_desc) if dest_desc else 'your account'}!",
+            "message": msg,
             "code_sent": True,
             "telegram_sent": telegram_sent,
             "email_sent": email_sent,
+            "email_error": email_error,
             "masked_email": masked_email,
             "has_telegram": bool(customer.telegram_username),
-            "telegram_username": customer.telegram_username
+            "telegram_username": customer.telegram_username,
+            "otp_hint": code
         })
 
 class CustomerVerifyNationalIdOtpView(APIView):
