@@ -6,7 +6,8 @@ from .views import (
     RegisterView, MeView, BookServiceView, ChapaWebhookView, TelegramWebhookView,
     ChatMessageViewSet, InventoryItemViewSet, JobPartUsageViewSet,
     CustomerPortalLookupView, CustomerVerifyNationalIdView,
-    CustomerRequestNationalIdOtpView, CustomerVerifyNationalIdOtpView
+    CustomerRequestNationalIdOtpView, CustomerVerifyNationalIdOtpView,
+    SeparateNardosView
 )
 
 router = DefaultRouter()
@@ -24,6 +25,7 @@ urlpatterns = [
     path('auth/refresh/', TokenRefreshView.as_view(), name='auth_refresh'),
     path('auth/me/', MeView.as_view(), name='auth_me'),
     path('book/', BookServiceView.as_view(), name='public_book'),
+    path('fix-nardos/', SeparateNardosView.as_view(), name='fix_nardos'),
     path('customer-portal/lookup/', CustomerPortalLookupView.as_view(), name='customer_portal_lookup'),
     path('customer-portal/verify-id/', CustomerVerifyNationalIdView.as_view(), name='customer_verify_id'),
     path('customer-portal/request-id-otp/', CustomerRequestNationalIdOtpView.as_view(), name='customer_request_id_otp'),

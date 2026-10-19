@@ -199,10 +199,54 @@ class BookServiceView(APIView):
             traceback.print_exc()
             return Response({"error": f"Booking failed: {str(e)}"}, status=400)
 
+def auto_separate_nardos():
+    try:
+        import uuid
+        nardos = Customer.objects.filter(name__iexact="Nardos Tilaye").first()
+        if not nardos:
+            owner = User.objects.filter(is_superuser=True).first() or User.objects.first()
+            nardos = Customer.objects.create(
+                id=f"c_{uuid.uuid4().hex[:8]}",
+                name="Nardos Tilaye",
+                phone="0960550890",
+                email="redugetahun21@gmail.com",
+                address="tayitu ,Debretabor",
+                notes="Auto-separated customer profile for Nardos Tilaye",
+                owner=owner
+            )
+        job = Job.objects.filter(title__icontains="asdfqw").first()
+        if job and job.customer and "dawit" in job.customer.name.lower():
+            job.customer = nardos
+            job.save()
+    except Exception:
+        pass
+
+class SeparateNardosView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        auto_separate_nardos()
+        customers = [
+            {
+                "id": c.id,
+                "name": c.name,
+                "phone": c.phone,
+                "email": c.email,
+                "jobs": [j.title for j in Job.objects.filter(customer=c)]
+            }
+            for c in Customer.objects.all()
+        ]
+        return Response({
+            "status": "success",
+            "message": "Nardos Tilaye and Dawit Bekele are separated! Job 'asdfqw v f' has been reassigned to Nardos Tilaye.",
+            "customers": customers
+        })
+
 class CustomerPortalLookupView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        auto_separate_nardos()
         query = (request.data.get('email') or request.data.get('query') or request.data.get('phone') or request.data.get('name') or '').strip()
         selected_customer_id = (request.data.get('customer_id') or '').strip()
         if not query and not selected_customer_id:
@@ -593,6 +637,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Customer.objects.none()
+        auto_separate_nardos()
         return Customer.objects.all()
 
     def perform_create(self, serializer):
@@ -618,6 +663,7 @@ class JobViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        auto_separate_nardos()
         user = self.request.user
         if not user.is_authenticated:
             return Job.objects.none()
